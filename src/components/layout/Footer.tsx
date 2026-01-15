@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { services } from "@/data/services";
+import psDigitalLogo from "@/assets/ps-digital-logo.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -41,13 +42,12 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Company Info */}
           <div className="space-y-6">
-            <Link to="/" className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg gradient-bg text-white font-bold text-xl">
-                PS
-              </div>
-              <span className="font-bold text-xl text-background">
-                PS Digital
-              </span>
+            <Link to="/" className="inline-block">
+              <img 
+                src={psDigitalLogo} 
+                alt="PS Digital Marketing Agency" 
+                className="h-14 w-auto brightness-0 invert"
+              />
             </Link>
             <p className="text-background/70 text-sm leading-relaxed">
               We are a full-service digital marketing agency helping businesses grow 
