@@ -129,7 +129,8 @@ const Header = () => {
                           <Link
                             key={idx}
                             to={`/services/${service.id}`}
-                            className="block px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                            className="block px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary opacity-0 animate-fade-in-up"
+                            style={{ animationDelay: `${idx * 50}ms` }}
                           >
                             <span className="text-foreground">{subService.name}</span>
                           </Link>
@@ -137,7 +138,8 @@ const Header = () => {
                         {service.subServices.length > 4 && (
                           <Link
                             to={`/services/${service.id}`}
-                            className="block px-3 py-2 rounded-md text-sm text-primary hover:bg-accent transition-colors"
+                            className="block px-3 py-2 rounded-md text-sm text-primary hover:bg-accent transition-colors opacity-0 animate-fade-in-up"
+                            style={{ animationDelay: `${4 * 50}ms` }}
                           >
                             +{service.subServices.length - 4} more...
                           </Link>
@@ -234,7 +236,8 @@ const Header = () => {
                                 <SheetClose asChild key={idx}>
                                   <Link
                                     to={`/services/${service.id}`}
-                                    className="block px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                    className="block px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors opacity-0 animate-fade-in-up"
+                                    style={{ animationDelay: `${idx * 50}ms` }}
                                   >
                                     {subService.name}
                                   </Link>
