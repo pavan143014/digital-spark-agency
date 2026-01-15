@@ -30,9 +30,17 @@ const TestimonialsSection = () => {
   const currentTestimonial = testimonials[currentIndex];
 
   return (
-    <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-      <div className="container">
+    <section className="py-20 relative overflow-hidden">
+      {/* Colorful Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+      <div className="absolute top-10 right-20 w-64 h-64 bg-[hsl(var(--ps-cyan)/0.1)] rounded-full blur-3xl" />
+      <div className="absolute bottom-10 left-20 w-80 h-80 bg-[hsl(var(--ps-purple)/0.1)] rounded-full blur-3xl" />
+      
+      <div className="container relative z-10">
         <ScrollReveal className="text-center max-w-3xl mx-auto mb-16">
+          <span className="inline-block px-4 py-2 rounded-full bg-accent/10 text-accent text-sm font-medium mb-4">
+            Testimonials
+          </span>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             What Our <span className="gradient-text">Clients Say</span>
           </h2>
@@ -42,7 +50,7 @@ const TestimonialsSection = () => {
         </ScrollReveal>
 
         <ScrollReveal delay={0.2} className="max-w-4xl mx-auto">
-          <div className="relative bg-card rounded-2xl p-8 md:p-12 card-shadow border border-border/50">
+          <div className="relative bg-card rounded-2xl p-8 md:p-12 card-shadow border border-border/50 gradient-border">
             {/* Quote Icon */}
             <motion.div 
               initial={{ scale: 0 }}
