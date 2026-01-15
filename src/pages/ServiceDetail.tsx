@@ -3,6 +3,13 @@ import { ArrowLeft, ArrowRight, Check, MessageCircle } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { getServiceById, services } from "@/data/services";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Helmet } from "react-helmet-async";
 
 const ServiceDetail = () => {
   const { serviceId } = useParams();
@@ -38,8 +45,30 @@ const ServiceDetail = () => {
     .filter((s) => s.id !== service.id)
     .slice(0, 4);
 
+  // FAQ Schema for SEO
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": service.faqs.map((faq) => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer
+      }
+    }))
+  };
+
   return (
     <Layout>
+      <Helmet>
+        <title>{service.title} | PS Digital Marketing Agency</title>
+        <meta name="description" content={service.description} />
+        <script type="application/ld+json">
+          {JSON.stringify(faqSchema)}
+        </script>
+      </Helmet>
+
       {/* Hero Section */}
       <section className={`py-20 bg-gradient-to-br ${service.color} text-white`}>
         <div className="container">
@@ -187,9 +216,58 @@ const ServiceDetail = () => {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="py-20">
+        <div className="container">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-4">
+            Frequently Asked <span className="gradient-text">Questions</span>
+          </h2>
+          <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-12">
+            Get answers to common questions about our {service.shortTitle.toLowerCase()} services
+          </p>
+
+          <div className="max-w-3xl mx-auto">
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              {service.faqs.map((faq, index) => (
+                <AccordionItem
+                  key={index}
+                  value={`faq-${index}`}
+                  className="bg-card border border-border/50 rounded-xl px-6 data-[state=open]:border-primary/50 transition-colors"
+                >
+                  <AccordionTrigger className="text-left font-semibold hover:no-underline py-5">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground pb-5">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+
+          {/* CTA after FAQ */}
+          <div className="mt-12 text-center">
+            <p className="text-muted-foreground mb-4">
+              Have more questions? We're here to help!
+            </p>
+            <Button asChild size="lg" className="gradient-bg border-0">
+              <a
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                  `Hi PS Digital! I have a question about your ${service.title} services.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MessageCircle className="mr-2 h-5 w-5" />
+                Ask Us on WhatsApp
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {/* Related Services */}
-      <section className="py-20">
+      <section className="py-20 bg-muted/50">
         <div className="container">
           <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">
             Related <span className="gradient-text">Services</span>
