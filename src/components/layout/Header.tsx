@@ -80,9 +80,12 @@ const Header = () => {
           {/* Services Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-muted text-muted-foreground">
+              <button 
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-muted text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label="Open services menu"
+              >
                 Services
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-80 max-h-[70vh] overflow-y-auto p-2">
