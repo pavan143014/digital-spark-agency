@@ -13,6 +13,7 @@ import { ArrowLeft, Save, Eye, Calendar, Clock, CalendarClock, Sparkles } from '
 import ImageUpload from '@/components/admin/ImageUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import AIBlogGenerator from '@/components/admin/AIBlogGenerator';
+import SEOAnalyzer from '@/components/admin/SEOAnalyzer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, parseISO, isAfter } from 'date-fns';
@@ -385,6 +386,16 @@ const AdminPostEditor = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* SEO Analyzer */}
+          <SEOAnalyzer
+            title={formData.title}
+            content={formData.content}
+            excerpt={formData.excerpt}
+            slug={formData.slug}
+            tags={formData.tags}
+            coverImage={formData.cover_image}
+          />
 
           <Card>
             <CardHeader>
