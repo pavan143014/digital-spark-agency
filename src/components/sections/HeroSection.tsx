@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Play, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { useRef, useEffect } from "react";
 
 const HeroSection = () => {
   const ref = useRef<HTMLElement>(null);
@@ -11,6 +11,30 @@ const HeroSection = () => {
     offset: ["start start", "end start"],
   });
 
+  // Mouse position
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  // Smooth spring animation for mouse movement
+  const springConfig = { damping: 25, stiffness: 150 };
+  const smoothMouseX = useSpring(mouseX, springConfig);
+  const smoothMouseY = useSpring(mouseY, springConfig);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { clientX, clientY } = e;
+      const { innerWidth, innerHeight } = window;
+      // Normalize to -1 to 1 range
+      const x = (clientX / innerWidth - 0.5) * 2;
+      const y = (clientY / innerHeight - 0.5) * 2;
+      mouseX.set(x);
+      mouseY.set(y);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [mouseX, mouseY]);
+
   // Parallax transforms
   const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
@@ -18,12 +42,24 @@ const HeroSection = () => {
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
 
+  // Mouse follow transforms for different elements (different intensities)
+  const blob1X = useTransform(smoothMouseX, [-1, 1], [-40, 40]);
+  const blob1Y = useTransform(smoothMouseY, [-1, 1], [-40, 40]);
+  const blob2X = useTransform(smoothMouseX, [-1, 1], [30, -30]);
+  const blob2Y = useTransform(smoothMouseY, [-1, 1], [30, -30]);
+  const blob3X = useTransform(smoothMouseX, [-1, 1], [-20, 20]);
+  const blob3Y = useTransform(smoothMouseY, [-1, 1], [-15, 15]);
+  const blob4X = useTransform(smoothMouseX, [-1, 1], [15, -15]);
+  const blob4Y = useTransform(smoothMouseY, [-1, 1], [20, -20]);
+  const imageRotateX = useTransform(smoothMouseY, [-1, 1], [2, -2]);
+  const imageRotateY = useTransform(smoothMouseX, [-1, 1], [-2, 2]);
+
   return (
     <section 
       ref={ref}
       className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted py-20 lg:py-32 min-h-[90vh]"
     >
-      {/* Parallax Background Elements */}
+      {/* Parallax Background Elements with Mouse Follow */}
       <motion.div 
         className="absolute inset-0 overflow-hidden"
         style={{ y: backgroundY }}
@@ -32,49 +68,53 @@ const HeroSection = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          style={{ scale }}
+          style={{ scale, x: blob1X, y: blob1Y }}
           className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" 
         />
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-          style={{ scale }}
+          style={{ scale, x: blob2X, y: blob2Y }}
           className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-accent/10 rounded-full blur-3xl" 
         />
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5 }}
           transition={{ duration: 2, delay: 0.5 }}
+          style={{ x: blob3X, y: blob3Y }}
           className="absolute top-1/3 left-1/4 w-64 h-64 bg-secondary/5 rounded-full blur-2xl" 
         />
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.3 }}
           transition={{ duration: 2, delay: 0.7 }}
+          style={{ x: blob4X, y: blob4Y }}
           className="absolute bottom-1/4 right-1/3 w-48 h-48 bg-primary/5 rounded-full blur-2xl" 
         />
       </motion.div>
 
-      {/* Floating particles */}
+      {/* Floating particles with mouse follow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(8)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute w-2 h-2 bg-primary/20 rounded-full"
             style={{
-              left: `${15 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
+              left: `${10 + i * 12}%`,
+              top: `${15 + (i % 4) * 20}%`,
+              x: useTransform(smoothMouseX, [-1, 1], [-(10 + i * 3), 10 + i * 3]),
+              y: useTransform(smoothMouseY, [-1, 1], [-(8 + i * 2), 8 + i * 2]),
             }}
             animate={{
-              y: [0, -30, 0],
+              scale: [1, 1.5, 1],
               opacity: [0.3, 0.6, 0.3],
             }}
             transition={{
               duration: 3 + i * 0.5,
               repeat: Infinity,
               ease: "easeInOut",
-              delay: i * 0.3,
+              delay: i * 0.2,
             }}
           />
         ))}
@@ -159,12 +199,17 @@ const HeroSection = () => {
             </motion.div>
           </div>
 
-          {/* Hero Image with Parallax */}
+          {/* Hero Image with Parallax + 3D Tilt */}
           <motion.div 
             initial={{ opacity: 0, x: 60 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            style={{ y: imageY }}
+            style={{ 
+              y: imageY,
+              rotateX: imageRotateX,
+              rotateY: imageRotateY,
+              transformPerspective: 1000,
+            }}
             className="relative"
           >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
@@ -178,24 +223,32 @@ const HeroSection = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent" />
             </div>
             
-            {/* Floating Card */}
+            {/* Floating Card - Bottom Left */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
               whileHover={{ scale: 1.05, y: -5 }}
+              style={{
+                x: useTransform(smoothMouseX, [-1, 1], [-8, 8]),
+                y: useTransform(smoothMouseY, [-1, 1], [-5, 5]),
+              }}
               className="absolute -bottom-6 -left-6 bg-card p-4 rounded-xl shadow-xl border"
             >
               <p className="text-sm font-medium">Average ROI</p>
               <p className="text-2xl font-bold gradient-text">+340%</p>
             </motion.div>
 
-            {/* Second Floating Card */}
+            {/* Floating Card - Top Right */}
             <motion.div 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.8 }}
               whileHover={{ scale: 1.05, y: 5 }}
+              style={{
+                x: useTransform(smoothMouseX, [-1, 1], [10, -10]),
+                y: useTransform(smoothMouseY, [-1, 1], [8, -8]),
+              }}
               className="absolute -top-4 -right-4 bg-card p-3 rounded-xl shadow-xl border"
             >
               <p className="text-xs font-medium text-muted-foreground">Traffic Growth</p>
