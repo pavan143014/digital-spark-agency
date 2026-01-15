@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -20,11 +21,13 @@ import {
   CheckCircle,
   Clock,
   Search,
-  TrendingUp,
-  Users,
-  BarChart3,
   CalendarClock,
-  LayoutDashboard
+  LayoutDashboard,
+  TrendingUp,
+  BarChart3,
+  EyeIcon,
+  ArrowUpRight,
+  Loader2
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -37,7 +40,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { format, isAfter, isBefore, parseISO } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { format, parseISO, isAfter, subDays, startOfDay } from 'date-fns';
 
 interface BlogPost {
   id: string;
@@ -50,6 +59,15 @@ interface BlogPost {
   created_at: string;
   updated_at: string;
   cover_image: string | null;
+  view_count: number;
+}
+
+interface ViewStats {
+  today: number;
+  week: number;
+  total: number;
+  topPosts: { id: string; title: string; view_count: number; slug: string }[];
+  recentViews: { date: string; count: number }[];
 }
 
 const Admin = () => {
@@ -58,6 +76,10 @@ const Admin = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+  const [isBulkActioning, setIsBulkActioning] = useState(false);
+  const [viewStats, setViewStats] = useState<ViewStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -70,6 +92,7 @@ const Admin = () => {
   useEffect(() => {
     if (user && isAdmin) {
       fetchPosts();
+      fetchViewStats();
     }
   }, [user, isAdmin]);
 
@@ -77,7 +100,7 @@ const Admin = () => {
     setLoadingPosts(true);
     const { data, error } = await supabase
       .from('blog_posts')
-      .select('id, title, slug, excerpt, category, published, published_at, created_at, updated_at, cover_image')
+      .select('id, title, slug, excerpt, category, published, published_at, created_at, updated_at, cover_image, view_count')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -90,6 +113,68 @@ const Admin = () => {
       setPosts(data || []);
     }
     setLoadingPosts(false);
+  };
+
+  const fetchViewStats = async () => {
+    setLoadingStats(true);
+    try {
+      const now = new Date();
+      const todayStart = startOfDay(now);
+      const weekStart = startOfDay(subDays(now, 7));
+
+      // Get today's views
+      const { count: todayCount } = await supabase
+        .from('post_views')
+        .select('*', { count: 'exact', head: true })
+        .gte('viewed_at', todayStart.toISOString());
+
+      // Get this week's views
+      const { count: weekCount } = await supabase
+        .from('post_views')
+        .select('*', { count: 'exact', head: true })
+        .gte('viewed_at', weekStart.toISOString());
+
+      // Get total views
+      const { count: totalCount } = await supabase
+        .from('post_views')
+        .select('*', { count: 'exact', head: true });
+
+      // Get top posts
+      const { data: topPostsData } = await supabase
+        .from('blog_posts')
+        .select('id, title, view_count, slug')
+        .order('view_count', { ascending: false })
+        .limit(5);
+
+      // Get views per day for last 7 days
+      const recentViews: { date: string; count: number }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const dayStart = startOfDay(subDays(now, i));
+        const dayEnd = startOfDay(subDays(now, i - 1));
+        
+        const { count } = await supabase
+          .from('post_views')
+          .select('*', { count: 'exact', head: true })
+          .gte('viewed_at', dayStart.toISOString())
+          .lt('viewed_at', dayEnd.toISOString());
+
+        recentViews.push({
+          date: format(dayStart, 'EEE'),
+          count: count || 0,
+        });
+      }
+
+      setViewStats({
+        today: todayCount || 0,
+        week: weekCount || 0,
+        total: totalCount || 0,
+        topPosts: topPostsData || [],
+        recentViews,
+      });
+    } catch (error) {
+      console.error('Error fetching view stats:', error);
+    }
+    setLoadingStats(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -110,6 +195,72 @@ const Admin = () => {
         description: 'Post deleted successfully',
       });
       fetchPosts();
+      setSelectedPosts(new Set());
+    }
+  };
+
+  const handleBulkAction = async (action: 'publish' | 'unpublish' | 'delete') => {
+    if (selectedPosts.size === 0) return;
+    
+    setIsBulkActioning(true);
+    const ids = Array.from(selectedPosts);
+
+    try {
+      if (action === 'delete') {
+        const { error } = await supabase
+          .from('blog_posts')
+          .delete()
+          .in('id', ids);
+        
+        if (error) throw error;
+        toast({
+          title: 'Success',
+          description: `${ids.length} post(s) deleted`,
+        });
+      } else {
+        const { error } = await supabase
+          .from('blog_posts')
+          .update({ 
+            published: action === 'publish',
+            published_at: action === 'publish' ? new Date().toISOString() : null
+          })
+          .in('id', ids);
+        
+        if (error) throw error;
+        toast({
+          title: 'Success',
+          description: `${ids.length} post(s) ${action === 'publish' ? 'published' : 'unpublished'}`,
+        });
+      }
+      
+      fetchPosts();
+      setSelectedPosts(new Set());
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || `Failed to ${action} posts`,
+        variant: 'destructive',
+      });
+    }
+    
+    setIsBulkActioning(false);
+  };
+
+  const togglePostSelection = (postId: string) => {
+    const newSelected = new Set(selectedPosts);
+    if (newSelected.has(postId)) {
+      newSelected.delete(postId);
+    } else {
+      newSelected.add(postId);
+    }
+    setSelectedPosts(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPosts.size === filteredPosts.length) {
+      setSelectedPosts(new Set());
+    } else {
+      setSelectedPosts(new Set(filteredPosts.map(p => p.id)));
     }
   };
 
@@ -199,7 +350,154 @@ const Admin = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2">Welcome back! 👋</h2>
-          <p className="text-muted-foreground">Here's an overview of your blog content</p>
+          <p className="text-muted-foreground">Here's an overview of your blog content and analytics</p>
+        </div>
+
+        {/* Analytics Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Analytics Overview
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Today's Views</CardTitle>
+                <div className="p-2 rounded-full bg-green-500/10">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold">{viewStats?.today || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Page views today</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">This Week</CardTitle>
+                <div className="p-2 rounded-full bg-blue-500/10">
+                  <BarChart3 className="h-4 w-4 text-blue-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold">{viewStats?.week || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Views this week</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+                <div className="p-2 rounded-full bg-purple-500/10">
+                  <EyeIcon className="h-4 w-4 text-purple-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold">{viewStats?.total || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">All time views</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+                <div className="p-2 rounded-full bg-primary/10">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stats.published} published</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Posts & Weekly Chart */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Weekly Views Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Views This Week</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <div className="h-32 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="flex items-end gap-2 h-32">
+                    {viewStats?.recentViews.map((day, i) => {
+                      const maxCount = Math.max(...(viewStats?.recentViews.map(d => d.count) || [1]), 1);
+                      const height = day.count > 0 ? Math.max((day.count / maxCount) * 100, 10) : 4;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                          <div 
+                            className="w-full bg-primary/80 rounded-t transition-all hover:bg-primary"
+                            style={{ height: `${height}%` }}
+                            title={`${day.count} views`}
+                          />
+                          <span className="text-xs text-muted-foreground">{day.date}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Top Posts */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Popular Posts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <div className="h-32 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : viewStats?.topPosts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No views yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {viewStats?.topPosts.slice(0, 4).map((post, i) => (
+                      <div key={post.id} className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-muted-foreground w-4">{i + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <Link 
+                            to={`/blog/${post.slug}`} 
+                            target="_blank"
+                            className="text-sm font-medium truncate hover:text-primary transition-colors flex items-center gap-1"
+                          >
+                            {post.title}
+                            <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
+                          </Link>
+                        </div>
+                        <Badge variant="secondary" className="flex-shrink-0">
+                          {post.view_count} views
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -292,6 +590,70 @@ const Admin = () => {
               </Tabs>
             </div>
 
+            {/* Bulk Actions Bar */}
+            {selectedPosts.size > 0 && (
+              <div className="flex items-center gap-4 p-3 mb-4 rounded-lg bg-muted">
+                <span className="text-sm font-medium">
+                  {selectedPosts.size} post(s) selected
+                </span>
+                <div className="flex-1" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction('publish')}
+                  disabled={isBulkActioning}
+                >
+                  {isBulkActioning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                  Publish
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkAction('unpublish')}
+                  disabled={isBulkActioning}
+                >
+                  {isBulkActioning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Clock className="h-4 w-4 mr-2" />}
+                  Unpublish
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={isBulkActioning}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete {selectedPosts.size} Post(s)</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {selectedPosts.size} post(s)? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleBulkAction('delete')}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete All
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedPosts(new Set())}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+
             {/* Posts List */}
             {loadingPosts ? (
               <div className="flex justify-center py-12">
@@ -319,11 +681,28 @@ const Admin = () => {
               </div>
             ) : (
               <div className="space-y-3">
+                {/* Select All */}
+                <div className="flex items-center gap-3 pb-2 border-b">
+                  <Checkbox
+                    checked={selectedPosts.size === filteredPosts.length && filteredPosts.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <span className="text-sm text-muted-foreground">Select all</span>
+                </div>
+
                 {filteredPosts.map((post) => (
                   <div
                     key={post.id}
-                    className="flex items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors group"
+                    className={`flex items-center gap-4 p-4 rounded-lg border transition-colors group ${
+                      selectedPosts.has(post.id) ? 'bg-primary/5 border-primary/30' : 'bg-card hover:bg-accent/50'
+                    }`}
                   >
+                    {/* Checkbox */}
+                    <Checkbox
+                      checked={selectedPosts.has(post.id)}
+                      onCheckedChange={() => togglePostSelection(post.id)}
+                    />
+
                     {/* Thumbnail */}
                     <div className="hidden sm:block w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                       {post.cover_image ? (
@@ -347,6 +726,10 @@ const Admin = () => {
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         <span className="px-2 py-0.5 bg-muted rounded text-xs">{post.category}</span>
+                        <span className="flex items-center gap-1">
+                          <EyeIcon className="h-3 w-3" />
+                          {post.view_count} views
+                        </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {getPostStatus(post) === 'scheduled' && post.published_at
