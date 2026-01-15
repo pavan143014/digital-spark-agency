@@ -59,7 +59,7 @@ const Header = () => {
           <img 
             src={psDigitalLogo} 
             alt="PS Digital Marketing Agency" 
-            className="h-16 w-auto transition-[filter] duration-200 dark:brightness-0 dark:invert"
+            className="h-24 w-auto transition-[filter] duration-200 dark:brightness-0 dark:invert"
           />
         </Link>
 
