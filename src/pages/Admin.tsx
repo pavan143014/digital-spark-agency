@@ -28,7 +28,8 @@ import {
   BarChart3,
   EyeIcon,
   ArrowUpRight,
-  Loader2
+  Loader2,
+  Sparkles
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -48,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format, parseISO, isAfter, subDays, startOfDay } from 'date-fns';
+import AutoBlogScheduler from '@/components/admin/AutoBlogScheduler';
 
 interface BlogPost {
   id: string;
@@ -536,6 +538,19 @@ const Admin = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* AI Blog Automation Section */}
+        <div className="mb-8">
+          <AutoBlogScheduler 
+            onPostGenerated={(post) => {
+              navigate('/admin/post/new', { 
+                state: { 
+                  prefill: post 
+                } 
+              });
+            }}
+          />
         </div>
 
         {/* Stats Cards */}

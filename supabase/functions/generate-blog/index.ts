@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, topic, keywords, tone, length, content: postContent, excerpt: postExcerpt } = await req.json();
+    const { type, topic, keywords, tone, length, content: postContent, excerpt: postExcerpt, additionalInstructions } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -33,10 +33,12 @@ Requirements:
 - Tone: ${tone || "Professional and informative"}
 - Target length: ${length || "1000-1500"} words
 - Include relevant keywords: ${keywords || "digital marketing, online presence, business growth"}
-- Structure with HTML tags (h2, h3, p, ul, li, strong, em)
+- Structure with HTML tags (h2, h3, p, ul, li, strong, em, a)
 - Include an engaging introduction that hooks the reader
 - Add practical tips and actionable advice
 - End with a compelling conclusion and call-to-action mentioning PS Digital
+
+${additionalInstructions || ''}
 
 Format the content with proper HTML structure for a rich text editor.`;
 

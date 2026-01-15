@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import ImageUpload from '@/components/admin/ImageUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 import AIBlogGenerator from '@/components/admin/AIBlogGenerator';
 import SEOAnalyzer from '@/components/admin/SEOAnalyzer';
+import KeywordDensityAnalyzer from '@/components/admin/KeywordDensityAnalyzer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, parseISO, isAfter } from 'date-fns';
@@ -28,6 +29,7 @@ import {
 
 const AdminPostEditor = () => {
   const { id } = useParams();
+  const location = useLocation();
   const isEditing = id && id !== 'new';
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -61,6 +63,36 @@ const AdminPostEditor = () => {
       fetchPost();
     }
   }, [id, user, isAdmin]);
+
+  // Handle prefilled data from AutoBlogScheduler
+  useEffect(() => {
+    const prefill = location.state?.prefill;
+    if (prefill && !isEditing) {
+      const generateSlugFromTitle = (title: string) => {
+        return title
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim();
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        title: prefill.title || prev.title,
+        slug: prefill.title ? generateSlugFromTitle(prefill.title) : prev.slug,
+        content: prefill.content || prev.content,
+        excerpt: prefill.excerpt || prev.excerpt,
+        tags: prefill.tags || prev.tags,
+        category: prefill.category || prev.category,
+      }));
+
+      toast({
+        title: 'AI Content Loaded',
+        description: 'Review the generated content and make any adjustments before publishing.',
+      });
+    }
+  }, [location.state, isEditing]);
 
   const fetchPost = async () => {
     setIsLoading(true);
@@ -395,6 +427,13 @@ const AdminPostEditor = () => {
             slug={formData.slug}
             tags={formData.tags}
             coverImage={formData.cover_image}
+          />
+
+          {/* Keyword Density Analyzer */}
+          <KeywordDensityAnalyzer
+            title={formData.title}
+            content={formData.content}
+            excerpt={formData.excerpt}
           />
 
           <Card>
