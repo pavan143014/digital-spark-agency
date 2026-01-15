@@ -4,6 +4,7 @@ import { Menu, Phone, MapPin, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { services } from "@/data/services";
 import psDigitalLogo from "@/assets/ps-digital-logo.png";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -114,6 +115,7 @@ const Header = () => {
 
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-3">
+          <ThemeToggle />
           <Button variant="outline" asChild>
             <a href="https://wa.me/919346884544" target="_blank" rel="noopener noreferrer">
               WhatsApp Us
@@ -125,12 +127,14 @@ const Header = () => {
         </div>
 
         {/* Mobile Menu */}
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild className="lg:hidden">
-            <Button variant="ghost" size="icon">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
+        <div className="flex items-center gap-2 lg:hidden">
+          <ThemeToggle />
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
           <SheetContent side="right" className="w-[300px] sm:w-[350px]">
             <div className="flex flex-col gap-6 mt-8">
               <nav className="flex flex-col gap-2">
@@ -190,7 +194,8 @@ const Header = () => {
               </div>
             </div>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
     </header>
   );
