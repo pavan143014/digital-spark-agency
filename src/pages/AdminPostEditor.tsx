@@ -9,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Eye, Calendar, Clock, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Calendar, Clock, CalendarClock, Sparkles } from 'lucide-react';
 import ImageUpload from '@/components/admin/ImageUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import AIBlogGenerator from '@/components/admin/AIBlogGenerator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format, parseISO, isAfter } from 'date-fns';
@@ -234,6 +235,19 @@ const AdminPostEditor = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <AIBlogGenerator
+              onTitleGenerated={(title) => {
+                setFormData(prev => ({
+                  ...prev,
+                  title,
+                  slug: generateSlug(title),
+                }));
+              }}
+              onContentGenerated={(content) => setFormData(prev => ({ ...prev, content }))}
+              onExcerptGenerated={(excerpt) => setFormData(prev => ({ ...prev, excerpt }))}
+              onTagsGenerated={(tags) => setFormData(prev => ({ ...prev, tags }))}
+              currentContent={formData.content}
+            />
             {formData.slug && (
               <Button variant="outline" size="sm" asChild>
                 <Link to={`/blog/${formData.slug}`} target="_blank">
