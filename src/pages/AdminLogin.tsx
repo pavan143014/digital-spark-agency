@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,9 +13,16 @@ const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, isAdmin, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Redirect to admin if already logged in as admin
+  useEffect(() => {
+    if (!authLoading && user && isAdmin) {
+      navigate('/admin');
+    }
+  }, [user, isAdmin, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,16 +36,25 @@ const AdminLogin = () => {
         description: error.message,
         variant: 'destructive',
       });
+      setIsLoading(false);
     } else {
       toast({
         title: 'Welcome back!',
-        description: 'Redirecting to admin dashboard...',
+        description: 'Checking admin access...',
       });
-      navigate('/admin');
+      // Don't set isLoading to false here - let the useEffect handle redirect
+      // after isAdmin is updated
     }
-    
-    setIsLoading(false);
   };
+
+  // Show loading if auth is still initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
