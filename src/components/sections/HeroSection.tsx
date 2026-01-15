@@ -57,7 +57,7 @@ const HeroSection = () => {
   return (
     <section 
       ref={ref}
-      className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted py-20 lg:py-32 min-h-[90vh]"
+      className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted pt-8 pb-16 lg:pt-12 lg:pb-24"
     >
       {/* Parallax Background Elements with Mouse Follow */}
       <motion.div 
