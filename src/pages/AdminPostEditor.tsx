@@ -5,11 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Eye } from 'lucide-react';
+import ImageUpload from '@/components/admin/ImageUpload';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
 const AdminPostEditor = () => {
   const { id } = useParams();
@@ -232,15 +234,11 @@ const AdminPostEditor = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="content">Content *</Label>
-                <Textarea
-                  id="content"
+                <Label>Content *</Label>
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="Write your post content here... (Markdown supported)"
-                  rows={15}
-                  className="font-mono"
-                  required
+                  onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+                  placeholder="Write your post content here..."
                 />
               </div>
             </CardContent>
@@ -252,12 +250,10 @@ const AdminPostEditor = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="cover_image">Cover Image URL</Label>
-                <Input
-                  id="cover_image"
+                <Label>Cover Image</Label>
+                <ImageUpload
                   value={formData.cover_image}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cover_image: e.target.value }))}
-                  placeholder="https://example.com/image.jpg"
+                  onChange={(url) => setFormData(prev => ({ ...prev, cover_image: url }))}
                 />
               </div>
 
