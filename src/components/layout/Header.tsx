@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Phone, MapPin, ChevronDown } from "lucide-react";
+import { Menu, Phone, MapPin, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { services } from "@/data/services";
 import psDigitalLogo from "@/assets/ps-digital-logo.png";
@@ -8,7 +8,6 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -17,10 +16,16 @@ import {
   SheetTrigger,
   SheetClose,
 } from "@/components/ui/sheet";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const Header = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedService, setExpandedService] = useState<string | null>(null);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -88,22 +93,59 @@ const Header = () => {
                 <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-80 max-h-[70vh] overflow-y-auto p-2">
+            <DropdownMenuContent align="start" className="w-96 max-h-[70vh] overflow-y-auto p-2">
               {services.map((service) => (
-                <DropdownMenuItem key={service.id} asChild>
-                  <Link
-                    to={`/services/${service.id}`}
-                    className="flex items-start gap-3 p-3 rounded-lg cursor-pointer"
-                  >
-                    <div className={`flex-shrink-0 p-2 rounded-lg bg-gradient-to-br ${service.color} text-white`}>
-                      <service.icon className="h-4 w-4" />
+                <Collapsible 
+                  key={service.id}
+                  open={expandedService === service.id}
+                  onOpenChange={(open) => setExpandedService(open ? service.id : null)}
+                >
+                  <div className="rounded-lg hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={`/services/${service.id}`}
+                        className="flex-1 flex items-start gap-3 p-3 rounded-lg cursor-pointer"
+                      >
+                        <div className={`flex-shrink-0 p-2 rounded-lg bg-gradient-to-br ${service.color} text-white`}>
+                          <service.icon className="h-4 w-4" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-medium text-foreground">{service.shortTitle}</span>
+                          <span className="text-xs text-muted-foreground line-clamp-1">{service.description}</span>
+                        </div>
+                      </Link>
+                      <CollapsibleTrigger asChild>
+                        <button 
+                          className="p-2 mr-2 rounded-md hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label={`Expand ${service.shortTitle} sub-services`}
+                        >
+                          <ChevronRight className={`h-4 w-4 transition-transform duration-200 ${expandedService === service.id ? 'rotate-90' : ''}`} />
+                        </button>
+                      </CollapsibleTrigger>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-medium text-foreground">{service.shortTitle}</span>
-                      <span className="text-xs text-muted-foreground line-clamp-2">{service.description}</span>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
+                    <CollapsibleContent>
+                      <div className="pl-14 pr-3 pb-3 space-y-1">
+                        {service.subServices.slice(0, 4).map((subService, idx) => (
+                          <Link
+                            key={idx}
+                            to={`/services/${service.id}`}
+                            className="block px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          >
+                            <span className="text-foreground">{subService.name}</span>
+                          </Link>
+                        ))}
+                        {service.subServices.length > 4 && (
+                          <Link
+                            to={`/services/${service.id}`}
+                            className="block px-3 py-2 rounded-md text-sm text-primary hover:bg-accent transition-colors"
+                          >
+                            +{service.subServices.length - 4} more...
+                          </Link>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
