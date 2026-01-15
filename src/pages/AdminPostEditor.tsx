@@ -6,12 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Calendar, Clock, CalendarClock } from 'lucide-react';
 import ImageUpload from '@/components/admin/ImageUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format, parseISO, isAfter } from 'date-fns';
+import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AdminPostEditor = () => {
   const { id } = useParams();
@@ -22,6 +33,9 @@ const AdminPostEditor = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [publishMode, setPublishMode] = useState<'draft' | 'now' | 'scheduled'>('draft');
+  const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
+  const [scheduledTime, setScheduledTime] = useState('09:00');
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -73,6 +87,18 @@ const AdminPostEditor = () => {
         tags: data.tags?.join(', ') || '',
         published: data.published,
       });
+      
+      // Set publish mode based on existing data
+      if (!data.published) {
+        setPublishMode('draft');
+      } else if (data.published_at && isAfter(parseISO(data.published_at), new Date())) {
+        setPublishMode('scheduled');
+        const pubDate = parseISO(data.published_at);
+        setScheduledDate(pubDate);
+        setScheduledTime(format(pubDate, 'HH:mm'));
+      } else {
+        setPublishMode('now');
+      }
     }
     setIsLoading(false);
   };
@@ -95,9 +121,30 @@ const AdminPostEditor = () => {
     }));
   };
 
+  const getPublishData = () => {
+    switch (publishMode) {
+      case 'draft':
+        return { published: false, published_at: null };
+      case 'now':
+        return { published: true, published_at: new Date().toISOString() };
+      case 'scheduled':
+        if (!scheduledDate) {
+          return { published: false, published_at: null };
+        }
+        const [hours, minutes] = scheduledTime.split(':').map(Number);
+        const scheduledDateTime = new Date(scheduledDate);
+        scheduledDateTime.setHours(hours, minutes, 0, 0);
+        return { published: true, published_at: scheduledDateTime.toISOString() };
+      default:
+        return { published: false, published_at: null };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+
+    const { published, published_at } = getPublishData();
 
     const postData = {
       title: formData.title,
@@ -108,8 +155,8 @@ const AdminPostEditor = () => {
       author: formData.author,
       category: formData.category,
       tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-      published: formData.published,
-      published_at: formData.published ? new Date().toISOString() : null,
+      published,
+      published_at,
       created_by: user?.id,
     };
 
@@ -135,15 +182,31 @@ const AdminPostEditor = () => {
         variant: 'destructive',
       });
     } else {
+      const statusMessage = publishMode === 'scheduled' 
+        ? `Post scheduled for ${format(new Date(published_at!), 'MMM d, yyyy h:mm a')}`
+        : publishMode === 'now' 
+          ? 'Post published successfully'
+          : 'Draft saved successfully';
+      
       toast({
         title: 'Success',
-        description: `Post ${isEditing ? 'updated' : 'created'} successfully`,
+        description: statusMessage,
       });
       navigate('/admin');
     }
 
     setIsSaving(false);
   };
+
+  // Generate time options for the dropdown
+  const timeOptions = [];
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+      const displayTime = format(new Date(`2000-01-01T${time}`), 'h:mm a');
+      timeOptions.push({ value: time, label: displayTime });
+    }
+  }
 
   if (authLoading || isLoading) {
     return (
@@ -246,17 +309,22 @@ const AdminPostEditor = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Media & Metadata</CardTitle>
+              <CardTitle>Cover Image</CardTitle>
+              <CardDescription>Upload or add a URL for your post's featured image</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImageUpload
+                value={formData.cover_image}
+                onChange={(url) => setFormData(prev => ({ ...prev, cover_image: url }))}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Metadata</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Cover Image</Label>
-                <ImageUpload
-                  value={formData.cover_image}
-                  onChange={(url) => setFormData(prev => ({ ...prev, cover_image: url }))}
-                />
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="author">Author</Label>
@@ -270,12 +338,24 @@ const AdminPostEditor = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Input
-                    id="category"
+                  <Select
                     value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    placeholder="Category"
-                  />
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Digital Marketing">Digital Marketing</SelectItem>
+                      <SelectItem value="SEO">SEO</SelectItem>
+                      <SelectItem value="Social Media">Social Media</SelectItem>
+                      <SelectItem value="Content Marketing">Content Marketing</SelectItem>
+                      <SelectItem value="PPC">PPC</SelectItem>
+                      <SelectItem value="Email Marketing">Email Marketing</SelectItem>
+                      <SelectItem value="Web Design">Web Design</SelectItem>
+                      <SelectItem value="Analytics">Analytics</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -295,21 +375,154 @@ const AdminPostEditor = () => {
           <Card>
             <CardHeader>
               <CardTitle>Publishing</CardTitle>
+              <CardDescription>Choose when to publish your post</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="published" className="text-base">Publish Post</Label>
+            <CardContent className="space-y-4">
+              {/* Publish Mode Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div
+                  onClick={() => setPublishMode('draft')}
+                  className={cn(
+                    'p-4 rounded-lg border-2 cursor-pointer transition-all',
+                    publishMode === 'draft' 
+                      ? 'border-primary bg-primary/5' 
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={cn(
+                      'p-2 rounded-full',
+                      publishMode === 'draft' ? 'bg-primary/20' : 'bg-muted'
+                    )}>
+                      <Clock className={cn(
+                        'h-4 w-4',
+                        publishMode === 'draft' ? 'text-primary' : 'text-muted-foreground'
+                      )} />
+                    </div>
+                    <span className="font-medium">Save as Draft</span>
+                  </div>
                   <p className="text-sm text-muted-foreground">
-                    Make this post visible to the public
+                    Save without publishing. You can publish later.
                   </p>
                 </div>
-                <Switch
-                  id="published"
-                  checked={formData.published}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, published: checked }))}
-                />
+
+                <div
+                  onClick={() => setPublishMode('now')}
+                  className={cn(
+                    'p-4 rounded-lg border-2 cursor-pointer transition-all',
+                    publishMode === 'now' 
+                      ? 'border-green-500 bg-green-500/5' 
+                      : 'border-border hover:border-green-500/50'
+                  )}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={cn(
+                      'p-2 rounded-full',
+                      publishMode === 'now' ? 'bg-green-500/20' : 'bg-muted'
+                    )}>
+                      <Eye className={cn(
+                        'h-4 w-4',
+                        publishMode === 'now' ? 'text-green-500' : 'text-muted-foreground'
+                      )} />
+                    </div>
+                    <span className="font-medium">Publish Now</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Make your post live immediately.
+                  </p>
+                </div>
+
+                <div
+                  onClick={() => setPublishMode('scheduled')}
+                  className={cn(
+                    'p-4 rounded-lg border-2 cursor-pointer transition-all',
+                    publishMode === 'scheduled' 
+                      ? 'border-blue-500 bg-blue-500/5' 
+                      : 'border-border hover:border-blue-500/50'
+                  )}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={cn(
+                      'p-2 rounded-full',
+                      publishMode === 'scheduled' ? 'bg-blue-500/20' : 'bg-muted'
+                    )}>
+                      <CalendarClock className={cn(
+                        'h-4 w-4',
+                        publishMode === 'scheduled' ? 'text-blue-500' : 'text-muted-foreground'
+                      )} />
+                    </div>
+                    <span className="font-medium">Schedule</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Set a future date and time.
+                  </p>
+                </div>
               </div>
+
+              {/* Schedule Date/Time Picker */}
+              {publishMode === 'scheduled' && (
+                <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20 space-y-4">
+                  <div className="flex items-center gap-2 text-blue-500">
+                    <CalendarClock className="h-4 w-4" />
+                    <span className="font-medium">Schedule Publication</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              'w-full justify-start text-left font-normal',
+                              !scheduledDate && 'text-muted-foreground'
+                            )}
+                          >
+                            <Calendar className="mr-2 h-4 w-4" />
+                            {scheduledDate ? format(scheduledDate, 'PPP') : 'Pick a date'}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={scheduledDate}
+                            onSelect={setScheduledDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Time</Label>
+                      <Select value={scheduledTime} onValueChange={setScheduledTime}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {scheduledDate && (
+                    <p className="text-sm text-blue-500">
+                      This post will be published on{' '}
+                      <strong>
+                        {format(scheduledDate, 'MMMM d, yyyy')} at{' '}
+                        {format(new Date(`2000-01-01T${scheduledTime}`), 'h:mm a')}
+                      </strong>
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -319,7 +532,11 @@ const AdminPostEditor = () => {
             </Button>
             <Button type="submit" disabled={isSaving} className="gradient-bg">
               <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : (isEditing ? 'Update Post' : 'Create Post')}
+              {isSaving ? 'Saving...' : (
+                publishMode === 'draft' ? 'Save Draft' :
+                publishMode === 'now' ? 'Publish Now' :
+                'Schedule Post'
+              )}
             </Button>
           </div>
         </form>
