@@ -1,28 +1,89 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Play, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef } from "react";
 
 const HeroSection = () => {
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+
+  // Parallax transforms
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "30%"]);
+  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted py-20 lg:py-32">
-      {/* Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
+    <section 
+      ref={ref}
+      className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted py-20 lg:py-32 min-h-[90vh]"
+    >
+      {/* Parallax Background Elements */}
+      <motion.div 
+        className="absolute inset-0 overflow-hidden"
+        style={{ y: backgroundY }}
+      >
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl" 
+          style={{ scale }}
+          className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" 
         />
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-accent/10 rounded-full blur-3xl" 
+          style={{ scale }}
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-accent/10 rounded-full blur-3xl" 
         />
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.5 }}
+          transition={{ duration: 2, delay: 0.5 }}
+          className="absolute top-1/3 left-1/4 w-64 h-64 bg-secondary/5 rounded-full blur-2xl" 
+        />
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.3 }}
+          transition={{ duration: 2, delay: 0.7 }}
+          className="absolute bottom-1/4 right-1/3 w-48 h-48 bg-primary/5 rounded-full blur-2xl" 
+        />
+      </motion.div>
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 bg-primary/20 rounded-full"
+            style={{
+              left: `${15 + i * 15}%`,
+              top: `${20 + (i % 3) * 25}%`,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              duration: 3 + i * 0.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: i * 0.3,
+            }}
+          />
+        ))}
       </div>
 
-      <div className="container relative z-10">
+      <motion.div 
+        className="container relative z-10"
+        style={{ y: textY, opacity }}
+      >
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="space-y-8">
@@ -98,18 +159,21 @@ const HeroSection = () => {
             </motion.div>
           </div>
 
-          {/* Hero Image */}
+          {/* Hero Image with Parallax */}
           <motion.div 
             initial={{ opacity: 0, x: 60 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
+            style={{ y: imageY }}
             className="relative"
           >
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <img
+              <motion.img
                 src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop"
                 alt="Digital Marketing Dashboard"
                 className="w-full h-auto"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.3 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent" />
             </div>
@@ -119,14 +183,48 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6 }}
+              whileHover={{ scale: 1.05, y: -5 }}
               className="absolute -bottom-6 -left-6 bg-card p-4 rounded-xl shadow-xl border"
             >
               <p className="text-sm font-medium">Average ROI</p>
               <p className="text-2xl font-bold gradient-text">+340%</p>
             </motion.div>
+
+            {/* Second Floating Card */}
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              whileHover={{ scale: 1.05, y: 5 }}
+              className="absolute -top-4 -right-4 bg-card p-3 rounded-xl shadow-xl border"
+            >
+              <p className="text-xs font-medium text-muted-foreground">Traffic Growth</p>
+              <p className="text-xl font-bold text-green-500">↑ 287%</p>
+            </motion.div>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Scroll Indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        style={{ opacity }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+      >
+        <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+          className="w-6 h-10 rounded-full border-2 border-muted-foreground/30 flex items-start justify-center p-2"
+        >
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="w-1.5 h-1.5 bg-primary rounded-full"
+          />
+        </motion.div>
+      </motion.div>
     </section>
   );
 };
