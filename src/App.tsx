@@ -22,7 +22,7 @@ const App = () => {
 
   return (
     <HelmetProvider>
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <Preloader onComplete={() => setIsLoaded(true)} />
