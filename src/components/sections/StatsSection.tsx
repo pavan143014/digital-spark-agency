@@ -94,9 +94,9 @@ const StatsSection = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="border-t border-white/20 pt-12"
+          className="border-t border-white/30 pt-12"
         >
-          <p className="text-center text-white/60 mb-8 text-sm uppercase tracking-wider">
+          <p className="text-center text-white mb-8 text-sm uppercase tracking-wider font-medium">
             Trusted by Leading Brands
           </p>
           <motion.div
@@ -106,7 +106,7 @@ const StatsSection = () => {
               hidden: {},
               visible: { transition: { staggerChildren: 0.1, delayChildren: 0.8 } },
             }}
-            className="flex flex-wrap justify-center gap-8 md:gap-12"
+            className="flex flex-wrap justify-center gap-4 md:gap-6"
           >
             {clientLogos.map((logo, index) => (
               <motion.div
@@ -115,7 +115,8 @@ const StatsSection = () => {
                   hidden: { opacity: 0, scale: 0.8 },
                   visible: { opacity: 1, scale: 1 },
                 }}
-                className="text-white/40 hover:text-white/80 transition-colors font-semibold text-lg"
+                whileHover={{ scale: 1.05, y: -2 }}
+                className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg px-6 py-3 text-white font-semibold text-base hover:bg-white/20 transition-all duration-300 cursor-pointer shadow-lg"
               >
                 {logo}
               </motion.div>
