@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format, parseISO, isAfter, subDays, startOfDay } from 'date-fns';
 import AutoBlogScheduler from '@/components/admin/AutoBlogScheduler';
+import AIControlsPanel from '@/components/admin/AIControlsPanel';
 
 interface BlogPost {
   id: string;
@@ -540,9 +541,9 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* AI Blog Automation Section */}
+        {/* AI Content Studio Section */}
         <div className="mb-8">
-          <AutoBlogScheduler 
+          <AIControlsPanel 
             onPostGenerated={(post) => {
               navigate('/admin/post/new', { 
                 state: { 
