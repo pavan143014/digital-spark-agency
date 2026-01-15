@@ -1,10 +1,84 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar, Clock } from "lucide-react";
-import { blogPosts } from "@/data/blogPosts";
 import { Button } from "@/components/ui/button";
 import { ScrollReveal, StaggerContainer, StaggerItem } from "@/components/ui/scroll-reveal";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  cover_image: string | null;
+  category: string;
+  published_at: string | null;
+  content: string;
+}
 
 const BlogSection = () => {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .select("id, title, slug, excerpt, cover_image, category, published_at, content")
+        .eq("published", true)
+        .order("published_at", { ascending: false })
+        .limit(4);
+
+      if (!error && data) {
+        setPosts(data);
+      }
+      setIsLoading(false);
+    };
+
+    fetchPosts();
+  }, []);
+
+  const getReadTime = (content: string) => {
+    const wordsPerMinute = 200;
+    const words = content.split(/\s+/).length;
+    const minutes = Math.ceil(words / wordsPerMinute);
+    return `${minutes} min read`;
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "Recently";
+    return format(new Date(dateString), "MMM d, yyyy");
+  };
+
+  if (isLoading) {
+    return (
+      <section className="py-20 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-tl from-[hsl(var(--ps-cyan)/0.05)] via-background to-primary/5" />
+        <div className="container relative z-10">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-card rounded-xl overflow-hidden border border-border/50">
+                <Skeleton className="aspect-video w-full" />
+                <div className="p-5 space-y-3">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-6 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (posts.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-20 relative overflow-hidden">
       {/* Colorful Background */}
@@ -33,19 +107,25 @@ const BlogSection = () => {
         </ScrollReveal>
 
         <StaggerContainer className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {blogPosts.map((post) => (
+          {posts.map((post) => (
             <StaggerItem key={post.id}>
               <Link
                 to={`/blog/${post.slug}`}
                 className="group bg-card rounded-xl overflow-hidden hover-lift card-shadow border border-border/50 hover:border-primary/50 block h-full"
               >
                 {/* Image */}
-                <div className="aspect-video overflow-hidden">
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                <div className="aspect-video overflow-hidden bg-muted">
+                  {post.cover_image ? (
+                    <img
+                      src={post.cover_image}
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      <span className="text-4xl">📝</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -62,18 +142,18 @@ const BlogSection = () => {
 
                   {/* Excerpt */}
                   <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-                    {post.excerpt}
+                    {post.excerpt || post.content.substring(0, 100) + "..."}
                   </p>
 
                   {/* Meta */}
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {post.date}
+                      {formatDate(post.published_at)}
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {post.readTime}
+                      {getReadTime(post.content)}
                     </span>
                   </div>
                 </div>
