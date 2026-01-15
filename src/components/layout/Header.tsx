@@ -52,13 +52,13 @@ const Header = () => {
       </div>
 
       {/* Main Header */}
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-20 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center">
           <img 
             src={psDigitalLogo} 
             alt="PS Digital Marketing Agency" 
-            className="h-12 w-auto"
+            className="h-16 w-auto"
           />
         </Link>
 

@@ -46,7 +46,7 @@ const Footer = () => {
               <img 
                 src={psDigitalLogo} 
                 alt="PS Digital Marketing Agency" 
-                className="h-14 w-auto brightness-0 invert"
+                className="h-20 w-auto brightness-0 invert"
               />
             </Link>
             <p className="text-background/70 text-sm leading-relaxed">
