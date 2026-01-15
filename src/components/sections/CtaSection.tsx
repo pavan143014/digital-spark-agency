@@ -23,7 +23,7 @@ const CtaSection = () => {
           </h2>
           <p className="text-lg md:text-xl text-white/80 mb-8">
             Let's discuss how our digital marketing expertise can help you achieve your business goals. 
-            Get a free consultation today!
+            Contact us today!
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -32,8 +32,8 @@ const CtaSection = () => {
               size="lg"
               className="bg-white text-primary hover:bg-white/90 font-semibold"
             >
-              <Link to="/#booking">
-                Book Free Consultation
+              <Link to="/contact">
+                Contact Us
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>

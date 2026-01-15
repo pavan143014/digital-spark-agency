@@ -32,8 +32,8 @@ const HeroSection = () => {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" asChild className="gradient-bg border-0 text-base">
-                <Link to="/booking">
-                  Book Free Consultation
+                <Link to="/#services">
+                  Our Services
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>

@@ -3,7 +3,6 @@ import { ArrowLeft, ArrowRight, Check, MessageCircle } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { getServiceById, services } from "@/data/services";
 import { Button } from "@/components/ui/button";
-import BookingSection from "@/components/sections/BookingSection";
 
 const ServiceDetail = () => {
   const { serviceId } = useParams();
@@ -67,14 +66,18 @@ const ServiceDetail = () => {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button
+              asChild
               size="lg"
               className="bg-white text-primary hover:bg-white/90"
-              onClick={() => {
-                document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" });
-              }}
             >
-              Get Free Quote
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <a
+                href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Get Quote
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </a>
             </Button>
             <Button
               asChild
@@ -184,8 +187,6 @@ const ServiceDetail = () => {
         </div>
       </section>
 
-      {/* Booking Section */}
-      <BookingSection />
 
       {/* Related Services */}
       <section className="py-20">

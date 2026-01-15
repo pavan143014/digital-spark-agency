@@ -120,7 +120,7 @@ const Header = () => {
             </a>
           </Button>
           <Button asChild className="gradient-bg border-0">
-            <Link to="/booking">Book Consultation</Link>
+            <Link to="/contact">Contact Us</Link>
           </Button>
         </div>
 
@@ -173,7 +173,7 @@ const Header = () => {
                 </Button>
                 <SheetClose asChild>
                   <Button asChild className="w-full gradient-bg border-0">
-                    <Link to="/booking">Book Consultation</Link>
+                    <Link to="/contact">Contact Us</Link>
                   </Button>
                 </SheetClose>
               </div>
