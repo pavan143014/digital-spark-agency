@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Phone, MapPin, ChevronDown } from "lucide-react";
+import { Menu, Phone, MapPin, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { services } from "@/data/services";
+import psDigitalLogo from "@/assets/ps-digital-logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,13 +54,12 @@ const Header = () => {
       {/* Main Header */}
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg gradient-bg text-white font-bold text-xl">
-            PS
-          </div>
-          <span className="font-bold text-xl hidden sm:inline-block">
-            PS <span className="gradient-text">Digital</span>
-          </span>
+        <Link to="/" className="flex items-center">
+          <img 
+            src={psDigitalLogo} 
+            alt="PS Digital Marketing Agency" 
+            className="h-12 w-auto"
+          />
         </Link>
 
         {/* Desktop Navigation */}

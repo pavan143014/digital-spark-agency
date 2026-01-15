@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import psDigitalLogo from "@/assets/ps-digital-logo.png";
 
 interface PreloaderProps {
   onComplete?: () => void;
@@ -42,52 +43,42 @@ const Preloader = ({ onComplete }: PreloaderProps) => {
               {/* Glowing ring */}
               <motion.div
                 animate={{ 
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 0.8, 0.5] 
+                  scale: [1, 1.3, 1],
+                  opacity: [0.3, 0.6, 0.3] 
                 }}
                 transition={{ 
                   duration: 2, 
                   repeat: Infinity,
                   ease: "easeInOut" 
                 }}
-                className="absolute inset-0 w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-secondary blur-xl opacity-50"
+                className="absolute inset-0 w-48 h-32 bg-gradient-to-br from-primary/30 to-secondary/30 blur-2xl"
               />
               
-              {/* Logo Box */}
-              <motion.div 
-                className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-2xl"
+              {/* Logo Image */}
+              <motion.img 
+                src={psDigitalLogo}
+                alt="PS Digital Marketing Agency"
+                className="relative w-64 h-auto"
                 animate={{ 
-                  boxShadow: [
-                    "0 0 20px rgba(59, 130, 246, 0.3)",
-                    "0 0 40px rgba(59, 130, 246, 0.5)",
-                    "0 0 20px rgba(59, 130, 246, 0.3)"
+                  filter: [
+                    "drop-shadow(0 0 10px rgba(59, 130, 246, 0.3))",
+                    "drop-shadow(0 0 25px rgba(59, 130, 246, 0.5))",
+                    "drop-shadow(0 0 10px rgba(59, 130, 246, 0.3))"
                   ]
                 }}
                 transition={{ duration: 2, repeat: Infinity }}
-              >
-                <span className="text-4xl font-bold text-white">PS</span>
-              </motion.div>
+              />
             </motion.div>
 
-            {/* Text Animation */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
+            {/* Tagline */}
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-              className="text-center"
+              transition={{ delay: 1, duration: 0.5 }}
+              className="text-muted-foreground text-sm"
             >
-              <h1 className="text-2xl font-bold">
-                PS <span className="gradient-text">Digital</span>
-              </h1>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1, duration: 0.5 }}
-                className="text-muted-foreground text-sm mt-2"
-              >
-                Digital Marketing Excellence
-              </motion.p>
-            </motion.div>
+              Digital Marketing Excellence
+            </motion.p>
 
             {/* Loading Bar */}
             <motion.div
