@@ -85,15 +85,20 @@ const Header = () => {
                 <ChevronDown className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64 max-h-96 overflow-y-auto">
+            <DropdownMenuContent align="start" className="w-80 max-h-[70vh] overflow-y-auto p-2">
               {services.map((service) => (
                 <DropdownMenuItem key={service.id} asChild>
                   <Link
                     to={`/services/${service.id}`}
-                    className="flex items-center gap-3 py-2"
+                    className="flex items-start gap-3 p-3 rounded-lg cursor-pointer"
                   >
-                    <service.icon className="h-4 w-4 text-primary" />
-                    {service.shortTitle}
+                    <div className={`flex-shrink-0 p-2 rounded-lg bg-gradient-to-br ${service.color} text-white`}>
+                      <service.icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-foreground">{service.shortTitle}</span>
+                      <span className="text-xs text-muted-foreground line-clamp-2">{service.description}</span>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
               ))}
