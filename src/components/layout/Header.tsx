@@ -205,15 +205,45 @@ const Header = () => {
                   <span className="px-4 text-sm font-semibold text-muted-foreground">Services</span>
                   <div className="mt-2 flex flex-col gap-1">
                     {services.map((service) => (
-                      <SheetClose asChild key={service.id}>
-                        <Link
-                          to={`/services/${service.id}`}
-                          className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm hover:bg-muted transition-colors"
-                        >
-                          <service.icon className="h-4 w-4 text-primary" />
-                          {service.shortTitle}
-                        </Link>
-                      </SheetClose>
+                      <Collapsible key={service.id}>
+                        <div className="rounded-lg">
+                          <div className="flex items-center">
+                            <SheetClose asChild>
+                              <Link
+                                to={`/services/${service.id}`}
+                                className="flex-1 flex items-center gap-3 px-4 py-2 rounded-lg text-sm hover:bg-muted transition-colors"
+                              >
+                                <div className={`p-1.5 rounded-md bg-gradient-to-br ${service.color} text-white`}>
+                                  <service.icon className="h-3.5 w-3.5" />
+                                </div>
+                                <span className="font-medium">{service.shortTitle}</span>
+                              </Link>
+                            </SheetClose>
+                            <CollapsibleTrigger asChild>
+                              <button 
+                                className="p-2 mr-2 rounded-md hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                                aria-label={`Expand ${service.shortTitle} sub-services`}
+                              >
+                                <ChevronRight className="h-4 w-4 transition-transform duration-200 [[data-state=open]>&]:rotate-90" />
+                              </button>
+                            </CollapsibleTrigger>
+                          </div>
+                          <CollapsibleContent>
+                            <div className="pl-12 pr-4 pb-2 space-y-1">
+                              {service.subServices.map((subService, idx) => (
+                                <SheetClose asChild key={idx}>
+                                  <Link
+                                    to={`/services/${service.id}`}
+                                    className="block px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                  >
+                                    {subService.name}
+                                  </Link>
+                                </SheetClose>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
                     ))}
                   </div>
                 </div>
