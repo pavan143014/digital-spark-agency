@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, topic, keywords, tone, length } = await req.json();
+    const { type, topic, keywords, tone, length, content: postContent, excerpt: postExcerpt } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -83,6 +83,27 @@ ${topic}`;
       userPrompt = `Generate 5-8 relevant tags for a blog post about: "${topic}"
 
 Return only the tags, comma-separated, no explanations.`;
+
+    } else if (type === "seo_analysis") {
+      systemPrompt = `You are an expert SEO consultant for digital marketing blogs. 
+Analyze content and provide specific, actionable optimization suggestions.
+Focus on keyword usage, content structure, readability, and search intent.`;
+
+      userPrompt = `Analyze this blog post for SEO optimization:
+
+Title: "${topic}"
+Excerpt: "${postExcerpt || 'Not provided'}"
+Tags/Keywords: "${keywords || 'Not provided'}"
+Content Preview: "${postContent?.substring(0, 2000) || 'Not provided'}..."
+
+Provide specific recommendations in these areas:
+1. **Title Optimization**: How to improve the title for better click-through rates
+2. **Keyword Strategy**: Primary and secondary keywords to target
+3. **Content Improvements**: Specific sections or topics to add/expand
+4. **Readability**: Suggestions for better user engagement
+5. **Internal Linking**: Types of related content to link to
+
+Keep suggestions concise and actionable. Format with bullet points.`;
 
     } else {
       throw new Error("Invalid generation type");
