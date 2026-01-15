@@ -57,7 +57,7 @@ const HeroSection = () => {
   return (
     <section 
       ref={ref}
-      className="relative overflow-hidden bg-gradient-to-br from-background via-background to-muted pt-8 pb-16 lg:pt-12 lg:pb-24"
+      className="relative overflow-hidden colorful-bg pt-8 pb-16 lg:pt-12 lg:pb-24"
     >
       {/* Parallax Background Elements with Mouse Follow */}
       <motion.div 
@@ -69,25 +69,25 @@ const HeroSection = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
           style={{ scale, x: blob1X, y: blob1Y }}
-          className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" 
+          className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-primary/20 to-[hsl(var(--ps-cyan)/0.15)] rounded-full blur-3xl" 
         />
         <motion.div 
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }}
           style={{ scale, x: blob2X, y: blob2Y }}
-          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-accent/10 rounded-full blur-3xl" 
+          className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-gradient-to-br from-accent/15 to-[hsl(var(--ps-pink)/0.1)] rounded-full blur-3xl" 
         />
         <motion.div 
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
+          animate={{ opacity: 0.6 }}
           transition={{ duration: 2, delay: 0.5 }}
           style={{ x: blob3X, y: blob3Y }}
-          className="absolute top-1/3 left-1/4 w-64 h-64 bg-secondary/5 rounded-full blur-2xl" 
+          className="absolute top-1/3 left-1/4 w-64 h-64 bg-[hsl(var(--ps-cyan)/0.15)] rounded-full blur-2xl" 
         />
         <motion.div 
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.3 }}
+          animate={{ opacity: 0.4 }}
           transition={{ duration: 2, delay: 0.7 }}
           style={{ x: blob4X, y: blob4Y }}
           className="absolute bottom-1/4 right-1/3 w-48 h-48 bg-primary/5 rounded-full blur-2xl" 

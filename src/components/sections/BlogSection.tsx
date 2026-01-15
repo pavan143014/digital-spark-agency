@@ -6,10 +6,17 @@ import { ScrollReveal, StaggerContainer, StaggerItem } from "@/components/ui/scr
 
 const BlogSection = () => {
   return (
-    <section className="py-20 bg-muted/30">
-      <div className="container">
+    <section className="py-20 relative overflow-hidden">
+      {/* Colorful Background */}
+      <div className="absolute inset-0 bg-gradient-to-tl from-[hsl(var(--ps-cyan)/0.05)] via-background to-primary/5" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-primary/5 to-transparent rounded-full blur-3xl" />
+      
+      <div className="container relative z-10">
         <ScrollReveal className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
           <div>
+            <span className="inline-block px-4 py-2 rounded-full bg-[hsl(var(--ps-cyan)/0.1)] text-[hsl(var(--ps-cyan))] text-sm font-medium mb-4">
+              Our Blog
+            </span>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Latest <span className="gradient-text">Insights</span>
             </h2>
@@ -17,7 +24,7 @@ const BlogSection = () => {
               Stay updated with the latest digital marketing trends, tips, and strategies
             </p>
           </div>
-          <Button asChild variant="outline" className="w-fit">
+          <Button asChild variant="outline" className="w-fit gradient-border">
             <Link to="/blog">
               View All Articles
               <ArrowRight className="ml-2 h-4 w-4" />
