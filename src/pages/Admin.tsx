@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Plus, 
@@ -78,6 +79,7 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [isBulkActioning, setIsBulkActioning] = useState(false);
+  const [togglingPostId, setTogglingPostId] = useState<string | null>(null);
   const [viewStats, setViewStats] = useState<ViewStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
@@ -197,6 +199,42 @@ const Admin = () => {
       fetchPosts();
       setSelectedPosts(new Set());
     }
+  };
+
+  const handleQuickPublishToggle = async (postId: string, currentlyPublished: boolean) => {
+    setTogglingPostId(postId);
+    
+    try {
+      const { error } = await supabase
+        .from('blog_posts')
+        .update({ 
+          published: !currentlyPublished,
+          published_at: !currentlyPublished ? new Date().toISOString() : null
+        })
+        .eq('id', postId);
+
+      if (error) throw error;
+
+      // Update local state immediately for better UX
+      setPosts(posts.map(post => 
+        post.id === postId 
+          ? { ...post, published: !currentlyPublished, published_at: !currentlyPublished ? new Date().toISOString() : null }
+          : post
+      ));
+
+      toast({
+        title: 'Success',
+        description: `Post ${!currentlyPublished ? 'published' : 'unpublished'} successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update post',
+        variant: 'destructive',
+      });
+    }
+    
+    setTogglingPostId(null);
   };
 
   const handleBulkAction = async (action: 'publish' | 'unpublish' | 'delete') => {
@@ -738,6 +776,19 @@ const Admin = () => {
                           }
                         </span>
                       </div>
+                    </div>
+
+                    {/* Quick Publish Toggle */}
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Switch
+                        checked={getPostStatus(post) === 'published'}
+                        onCheckedChange={() => handleQuickPublishToggle(post.id, post.published)}
+                        disabled={togglingPostId === post.id || getPostStatus(post) === 'scheduled'}
+                        className="data-[state=checked]:bg-green-500"
+                      />
+                      {togglingPostId === post.id && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
                     </div>
 
                     {/* Actions */}
