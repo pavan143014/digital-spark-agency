@@ -101,7 +101,7 @@ const ServicesSection = () => {
                               initial={{ x: -20, opacity: 0 }}
                               animate={{ x: 0, opacity: 1 }}
                               transition={{ delay: subIndex * 0.05 }}
-                              className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                              className="flex items-start gap-3 p-3 rounded-lg bg-card/70 backdrop-blur-sm border border-border/60 hover:bg-card transition-colors"
                             >
                               <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${service.color} flex items-center justify-center shrink-0 text-white text-xs font-bold`}>
                                 {subIndex + 1}
