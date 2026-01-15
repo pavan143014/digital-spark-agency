@@ -52,8 +52,23 @@ const BlogPostPage = () => {
     } else {
       setPost(data);
       fetchRelatedPosts(data.id, data.category);
+      // Track the view
+      trackView(data.id);
     }
     setIsLoading(false);
+  };
+
+  const trackView = async (postId: string) => {
+    try {
+      await supabase.from('post_views').insert({
+        post_id: postId,
+        user_agent: navigator.userAgent,
+        referrer: document.referrer || null,
+      });
+    } catch (error) {
+      // Silently fail - view tracking is non-critical
+      console.error('Failed to track view:', error);
+    }
   };
 
   const fetchRelatedPosts = async (currentId: string, category: string) => {

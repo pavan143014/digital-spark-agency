@@ -30,6 +30,7 @@ export type Database = {
           tags: string[] | null
           title: string
           updated_at: string
+          view_count: number
         }
         Insert: {
           author?: string
@@ -46,6 +47,7 @@ export type Database = {
           tags?: string[] | null
           title: string
           updated_at?: string
+          view_count?: number
         }
         Update: {
           author?: string
@@ -62,8 +64,41 @@ export type Database = {
           tags?: string[] | null
           title?: string
           updated_at?: string
+          view_count?: number
         }
         Relationships: []
+      }
+      post_views: {
+        Row: {
+          id: string
+          post_id: string
+          referrer: string | null
+          user_agent: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_views_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
