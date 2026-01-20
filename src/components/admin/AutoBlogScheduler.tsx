@@ -8,30 +8,43 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { services } from '@/data/services';
+import { format } from 'date-fns';
 import { 
-  Calendar, 
+  Calendar as CalendarIcon, 
   ChevronDown, 
   ChevronUp, 
   Loader2, 
-  Play, 
-  Pause, 
   Sparkles,
   RefreshCw,
   Link as LinkIcon,
   CheckCircle2,
-  Clock
+  Clock,
+  Trash2,
+  AlertCircle,
+  Play,
+  Pause
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ScheduledPost {
   id: string;
   title: string;
-  service: string;
-  scheduledDate: Date;
-  status: 'pending' | 'generating' | 'generated' | 'published';
   topic: string;
+  service_id: string;
+  scheduled_at: string;
+  status: string;
+  include_internal_links: boolean;
+  website_url: string;
+  custom_instructions: string | null;
+  generated_post_id: string | null;
+  error_message: string | null;
+  created_at: string;
 }
 
 interface AutoBlogSchedulerProps {
@@ -40,12 +53,22 @@ interface AutoBlogSchedulerProps {
 
 const AutoBlogScheduler = ({ onPostGenerated }: AutoBlogSchedulerProps) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('generate');
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedService, setSelectedService] = useState('');
   const [customTopics, setCustomTopics] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('https://psdigital.in');
   const [includeInternalLinks, setIncludeInternalLinks] = useState(true);
-  const [generatedQueue, setGeneratedQueue] = useState<ScheduledPost[]>([]);
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
+  const [isLoadingScheduled, setIsLoadingScheduled] = useState(false);
+  
+  // Scheduling state
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(undefined);
+  const [scheduleTime, setScheduleTime] = useState('09:00');
+  const [scheduleTopic, setScheduleTopic] = useState('');
+  const [scheduleTitle, setScheduleTitle] = useState('');
+  const [customInstructions, setCustomInstructions] = useState('');
+  
   const { toast } = useToast();
 
   // Predefined topic templates for each service
@@ -123,6 +146,28 @@ const AutoBlogScheduler = ({ onPostGenerated }: AutoBlogSchedulerProps) => {
       'Measuring Video Marketing ROI'
     ]
   };
+
+  // Fetch scheduled posts
+  const fetchScheduledPosts = async () => {
+    setIsLoadingScheduled(true);
+    try {
+      const { data, error } = await supabase
+        .from('scheduled_blog_posts')
+        .select('*')
+        .order('scheduled_at', { ascending: true });
+
+      if (error) throw error;
+      setScheduledPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching scheduled posts:', error);
+    } finally {
+      setIsLoadingScheduled(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchScheduledPosts();
+  }, []);
 
   const generateBlogPost = async (service: string, topic: string) => {
     const serviceData = services.find(s => s.id === service);
@@ -294,6 +339,126 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
     setIsGenerating(false);
   };
 
+  const handleSchedulePost = async () => {
+    if (!selectedService || !scheduleDate || !scheduleTopic) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select a service, date, and topic',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      // Combine date and time
+      const [hours, minutes] = scheduleTime.split(':').map(Number);
+      const scheduledAt = new Date(scheduleDate);
+      scheduledAt.setHours(hours, minutes, 0, 0);
+
+      const { error } = await supabase.from('scheduled_blog_posts').insert({
+        title: scheduleTitle || scheduleTopic,
+        topic: scheduleTopic,
+        service_id: selectedService,
+        scheduled_at: scheduledAt.toISOString(),
+        include_internal_links: includeInternalLinks,
+        website_url: websiteUrl,
+        custom_instructions: customInstructions || null,
+        status: 'pending'
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Post Scheduled!',
+        description: `Blog post scheduled for ${format(scheduledAt, 'PPP p')}`,
+      });
+
+      // Reset form
+      setScheduleTopic('');
+      setScheduleTitle('');
+      setScheduleDate(undefined);
+      setCustomInstructions('');
+      
+      // Refresh list
+      fetchScheduledPosts();
+    } catch (error) {
+      console.error('Scheduling error:', error);
+      toast({
+        title: 'Scheduling Failed',
+        description: 'Failed to schedule the post',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDeleteScheduled = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('scheduled_blog_posts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Post Removed',
+        description: 'Scheduled post has been deleted',
+      });
+
+      fetchScheduledPosts();
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: 'Delete Failed',
+        description: 'Failed to delete scheduled post',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleProcessNow = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('process-scheduled-posts');
+      
+      if (error) throw error;
+
+      toast({
+        title: 'Processing Complete',
+        description: data.message || 'Scheduled posts processed',
+      });
+
+      fetchScheduledPosts();
+    } catch (error) {
+      console.error('Process error:', error);
+      toast({
+        title: 'Processing Failed',
+        description: 'Failed to process scheduled posts',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> Pending</Badge>;
+      case 'generating':
+        return <Badge variant="default" className="gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Generating</Badge>;
+      case 'completed':
+        return <Badge className="gap-1 bg-primary text-primary-foreground"><CheckCircle2 className="h-3 w-3" /> Completed</Badge>;
+      case 'failed':
+        return <Badge variant="destructive" className="gap-1"><AlertCircle className="h-3 w-3" /> Failed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const timeOptions = Array.from({ length: 24 * 4 }, (_, i) => {
+    const hours = Math.floor(i / 4);
+    const minutes = (i % 4) * 15;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  });
+
   return (
     <Card className="border-primary/20">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -301,10 +466,10 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
           <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
+                <CalendarIcon className="h-5 w-5 text-primary" />
                 <div>
                   <CardTitle className="text-lg">AI Blog Automation</CardTitle>
-                  <CardDescription>Generate SEO-optimized posts with internal links</CardDescription>
+                  <CardDescription>Generate and schedule SEO-optimized posts</CardDescription>
                 </div>
               </div>
               {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -314,109 +479,313 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
 
         <CollapsibleContent>
           <CardContent className="space-y-4">
-            {/* Service Selection */}
-            <div className="space-y-2">
-              <Label>Service Category</Label>
-              <Select value={selectedService} onValueChange={setSelectedService}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a service to write about" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services.map(service => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="generate">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate Now
+                </TabsTrigger>
+                <TabsTrigger value="schedule">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Schedule Posts
+                </TabsTrigger>
+              </TabsList>
 
-            {/* Website URL for internal links */}
-            <div className="space-y-2">
-              <Label>Website URL (for internal links)</Label>
-              <Input
-                value={websiteUrl}
-                onChange={(e) => setWebsiteUrl(e.target.value)}
-                placeholder="https://yourwebsite.com"
-              />
-            </div>
-
-            {/* Include internal links toggle */}
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4 text-primary" />
-                <div>
-                  <Label className="font-medium">Include Do-Follow Links</Label>
-                  <p className="text-xs text-muted-foreground">Add internal links to boost SEO</p>
+              {/* Generate Now Tab */}
+              <TabsContent value="generate" className="space-y-4 mt-4">
+                {/* Service Selection */}
+                <div className="space-y-2">
+                  <Label>Service Category</Label>
+                  <Select value={selectedService} onValueChange={setSelectedService}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a service to write about" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {services.map(service => (
+                        <SelectItem key={service.id} value={service.id}>
+                          {service.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
-              <Switch
-                checked={includeInternalLinks}
-                onCheckedChange={setIncludeInternalLinks}
-              />
-            </div>
 
-            {/* Topic suggestions */}
-            {selectedService && topicTemplates[selectedService] && (
-              <div className="space-y-2">
-                <Label>Available Topics for {services.find(s => s.id === selectedService)?.shortTitle}</Label>
-                <div className="flex flex-wrap gap-2">
-                  {topicTemplates[selectedService].slice(0, 4).map((topic, idx) => (
-                    <Badge key={idx} variant="secondary" className="text-xs">
-                      {topic.length > 40 ? topic.substring(0, 40) + '...' : topic}
-                    </Badge>
-                  ))}
-                  {topicTemplates[selectedService].length > 4 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{topicTemplates[selectedService].length - 4} more
-                    </Badge>
+                {/* Website URL for internal links */}
+                <div className="space-y-2">
+                  <Label>Website URL (for internal links)</Label>
+                  <Input
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://yourwebsite.com"
+                  />
+                </div>
+
+                {/* Include internal links toggle */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 text-primary" />
+                    <div>
+                      <Label className="font-medium">Include Do-Follow Links</Label>
+                      <p className="text-xs text-muted-foreground">Add internal links to boost SEO</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={includeInternalLinks}
+                    onCheckedChange={setIncludeInternalLinks}
+                  />
+                </div>
+
+                {/* Topic suggestions */}
+                {selectedService && topicTemplates[selectedService] && (
+                  <div className="space-y-2">
+                    <Label>Available Topics for {services.find(s => s.id === selectedService)?.shortTitle}</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {topicTemplates[selectedService].slice(0, 4).map((topic, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {topic.length > 40 ? topic.substring(0, 40) + '...' : topic}
+                        </Badge>
+                      ))}
+                      {topicTemplates[selectedService].length > 4 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{topicTemplates[selectedService].length - 4} more
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom topics */}
+                <div className="space-y-2">
+                  <Label>Custom Topics (Optional)</Label>
+                  <Textarea
+                    value={customTopics}
+                    onChange={(e) => setCustomTopics(e.target.value)}
+                    placeholder="Enter custom topics, one per line..."
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to use pre-defined topics for the selected service
+                  </p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleGenerateSingle}
+                    disabled={isGenerating || !selectedService}
+                    className="flex-1"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Generate Post
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleGenerateBatch}
+                    disabled={isGenerating || !selectedService}
+                    variant="outline"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Batch (3 Posts)
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Schedule Posts Tab */}
+              <TabsContent value="schedule" className="space-y-4 mt-4">
+                {/* Schedule Form */}
+                <div className="grid gap-4 p-4 rounded-lg border bg-muted/30">
+                  <h4 className="font-medium">Schedule New Post</h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Service Selection */}
+                    <div className="space-y-2">
+                      <Label>Service</Label>
+                      <Select value={selectedService} onValueChange={setSelectedService}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {services.map(service => (
+                            <SelectItem key={service.id} value={service.id}>
+                              {service.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Topic Selection */}
+                    <div className="space-y-2">
+                      <Label>Topic</Label>
+                      <Select value={scheduleTopic} onValueChange={setScheduleTopic}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select or type topic" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedService && topicTemplates[selectedService]?.map((topic, idx) => (
+                            <SelectItem key={idx} value={topic}>
+                              {topic.length > 50 ? topic.substring(0, 50) + '...' : topic}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Custom Title (Optional)</Label>
+                    <Input
+                      value={scheduleTitle}
+                      onChange={(e) => setScheduleTitle(e.target.value)}
+                      placeholder="Leave empty to use topic as title"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Date Picker */}
+                    <div className="space-y-2">
+                      <Label>Schedule Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !scheduleDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {scheduleDate ? format(scheduleDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={scheduleDate}
+                            onSelect={setScheduleDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Time Picker */}
+                    <div className="space-y-2">
+                      <Label>Schedule Time</Label>
+                      <Select value={scheduleTime} onValueChange={setScheduleTime}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {timeOptions.map(time => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Custom Instructions (Optional)</Label>
+                    <Textarea
+                      value={customInstructions}
+                      onChange={(e) => setCustomInstructions(e.target.value)}
+                      placeholder="Add any specific instructions for the AI writer..."
+                      rows={2}
+                    />
+                  </div>
+
+                  {/* Settings toggles */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background">
+                    <div className="flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4 text-primary" />
+                      <Label className="font-medium">Include Internal Links</Label>
+                    </div>
+                    <Switch
+                      checked={includeInternalLinks}
+                      onCheckedChange={setIncludeInternalLinks}
+                    />
+                  </div>
+
+                  <Button onClick={handleSchedulePost} disabled={!selectedService || !scheduleTopic || !scheduleDate}>
+                    <Clock className="h-4 w-4 mr-2" />
+                    Schedule Post
+                  </Button>
+                </div>
+
+                {/* Scheduled Posts List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Scheduled Posts</h4>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={fetchScheduledPosts}>
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        Refresh
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleProcessNow}>
+                        <Play className="h-4 w-4 mr-1" />
+                        Process Now
+                      </Button>
+                    </div>
+                  </div>
+
+                  {isLoadingScheduled ? (
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : scheduledPosts.length === 0 ? (
+                    <div className="text-center p-8 text-muted-foreground">
+                      <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p>No scheduled posts yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {scheduledPosts.map(post => (
+                        <div
+                          key={post.id}
+                          className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {getStatusBadge(post.status)}
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(post.scheduled_at), 'PPP p')}
+                              </span>
+                            </div>
+                            <p className="font-medium truncate">{post.title}</p>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {services.find(s => s.id === post.service_id)?.shortTitle || post.service_id}
+                            </p>
+                            {post.error_message && (
+                              <p className="text-xs text-destructive mt-1">{post.error_message}</p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteScheduled(post.id)}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Custom topics */}
-            <div className="space-y-2">
-              <Label>Custom Topics (Optional)</Label>
-              <Textarea
-                value={customTopics}
-                onChange={(e) => setCustomTopics(e.target.value)}
-                placeholder="Enter custom topics, one per line..."
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                Leave empty to use pre-defined topics for the selected service
-              </p>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-2">
-              <Button
-                onClick={handleGenerateSingle}
-                disabled={isGenerating || !selectedService}
-                className="flex-1"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate Post
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleGenerateBatch}
-                disabled={isGenerating || !selectedService}
-                variant="outline"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Batch (3 Posts)
-              </Button>
-            </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Info card */}
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">

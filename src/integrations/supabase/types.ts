@@ -100,6 +100,62 @@ export type Database = {
           },
         ]
       }
+      scheduled_blog_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          custom_instructions: string | null
+          error_message: string | null
+          generated_post_id: string | null
+          id: string
+          include_internal_links: boolean | null
+          scheduled_at: string
+          service_id: string
+          status: string
+          title: string
+          topic: string
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          custom_instructions?: string | null
+          error_message?: string | null
+          generated_post_id?: string | null
+          id?: string
+          include_internal_links?: boolean | null
+          scheduled_at: string
+          service_id: string
+          status?: string
+          title: string
+          topic: string
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          custom_instructions?: string | null
+          error_message?: string | null
+          generated_post_id?: string | null
+          id?: string
+          include_internal_links?: boolean | null
+          scheduled_at?: string
+          service_id?: string
+          status?: string
+          title?: string
+          topic?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_blog_posts_generated_post_id_fkey"
+            columns: ["generated_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
