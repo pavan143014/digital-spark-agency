@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import AIImageGenerator from './AIImageGenerator';
 
 interface ImageUploadProps {
   value: string;
@@ -161,7 +162,16 @@ const ImageUpload = ({ value, onChange, className }: ImageUploadProps) => {
       />
 
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Or paste URL:</span>
+        <AIImageGenerator
+          onImageGenerated={onChange}
+          trigger={
+            <Button variant="outline" size="sm" className="gap-2 shrink-0">
+              <Wand2 className="h-4 w-4" />
+              Generate with AI
+            </Button>
+          }
+        />
+        <span className="text-xs text-muted-foreground">or paste URL:</span>
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}

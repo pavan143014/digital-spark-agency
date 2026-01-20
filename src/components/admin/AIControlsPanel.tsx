@@ -24,8 +24,10 @@ import {
   BookOpen,
   Link as LinkIcon,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  Image as ImageIcon
 } from 'lucide-react';
+import AIImageGenerator from './AIImageGenerator';
 
 interface AIControlsPanelProps {
   onPostGenerated?: (post: { title: string; content: string; excerpt: string; tags: string; category: string }) => void;
@@ -241,10 +243,14 @@ SEO Requirements:
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="generate" className="flex items-center gap-2">
               <Wand2 className="h-4 w-4" />
               Generate Post
+            </TabsTrigger>
+            <TabsTrigger value="images" className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              AI Images
             </TabsTrigger>
             <TabsTrigger value="tools" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
@@ -371,6 +377,56 @@ SEO Requirements:
                 </>
               )}
             </Button>
+          </TabsContent>
+
+          {/* AI Images Tab */}
+          <TabsContent value="images" className="space-y-4">
+            <div className="grid gap-4">
+              <div className="p-6 rounded-lg border bg-gradient-to-br from-primary/5 to-transparent">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <ImageIcon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Generate AI Images</h3>
+                    <p className="text-sm text-muted-foreground">Create custom images for blog posts and marketing</p>
+                  </div>
+                </div>
+                <AIImageGenerator
+                  trigger={
+                    <Button className="w-full gradient-bg" size="lg">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Open AI Image Generator
+                    </Button>
+                  }
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg border hover:border-primary/50 transition-colors">
+                  <h4 className="font-medium mb-1">Blog Cover Images</h4>
+                  <p className="text-sm text-muted-foreground">1200×630 format optimized for blog headers and social sharing</p>
+                </div>
+                <div className="p-4 rounded-lg border hover:border-primary/50 transition-colors">
+                  <h4 className="font-medium mb-1">Social Media Graphics</h4>
+                  <p className="text-sm text-muted-foreground">Square 1080×1080 format for Instagram, Facebook, LinkedIn</p>
+                </div>
+                <div className="p-4 rounded-lg border hover:border-primary/50 transition-colors">
+                  <h4 className="font-medium mb-1">Story Format</h4>
+                  <p className="text-sm text-muted-foreground">Vertical 1080×1920 for Instagram and Facebook stories</p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50 border">
+                <h4 className="font-medium mb-2">Tips for Better Results</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Be specific about colors, style, and mood</li>
+                  <li>• Mention the subject matter clearly (e.g., "digital marketing concept")</li>
+                  <li>• Use style presets that match your brand aesthetic</li>
+                  <li>• Generated images are automatically saved to your storage</li>
+                </ul>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Quick Tools Tab */}
