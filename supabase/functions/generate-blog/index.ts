@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { type, topic, keywords, tone, length, content: postContent, excerpt: postExcerpt, additionalInstructions } = await req.json();
+    const { type, topic, keywords, tone, length, content: postContent, excerpt: postExcerpt, additionalInstructions, platform } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -106,6 +106,59 @@ Provide specific recommendations in these areas:
 5. **Internal Linking**: Types of related content to link to
 
 Keep suggestions concise and actionable. Format with bullet points.`;
+
+    } else if (type === "generate_social") {
+      const selectedPlatform = platform || 'twitter';
+      const platformConfig: Record<string, { limit: number; style: string }> = {
+        twitter: {
+          limit: 280,
+          style: `Twitter/X post requirements:
+- Maximum 280 characters (STRICT limit)
+- Punchy, attention-grabbing opening
+- Use 1-2 relevant hashtags at the end
+- Include a compelling hook or question
+- Professional but conversational tone
+- End with a call-to-action or link placeholder [LINK]`
+        },
+        linkedin: {
+          limit: 3000,
+          style: `LinkedIn post requirements:
+- Professional, thought-leadership tone
+- Start with a hook (question, bold statement, or statistic)
+- Use short paragraphs with line breaks for readability
+- Include 3-5 relevant hashtags at the end
+- Share insights and value-add content
+- End with a question to encourage comments
+- Can be 200-500 words for optimal engagement`
+        },
+        instagram: {
+          limit: 2200,
+          style: `Instagram caption requirements:
+- Start with a hook in the first line (shows in preview)
+- Conversational and relatable tone
+- Use relevant emojis throughout for visual appeal
+- Include a clear call-to-action
+- Add 5-10 relevant hashtags at the end
+- Break up text with line breaks
+- Encourage saves and shares`
+        }
+      };
+
+      const config = platformConfig[selectedPlatform] || platformConfig.twitter;
+      
+      systemPrompt = `You are a social media expert who creates highly engaging, platform-optimized content for digital marketing.
+You understand each platform's unique style, audience expectations, and best practices.
+Always create content that drives engagement and encourages action.`;
+
+      userPrompt = `Create an optimized ${selectedPlatform} post based on this blog content:
+
+Title: "${topic}"
+Summary: "${postExcerpt || 'Not provided'}"
+Content excerpt: "${postContent?.substring(0, 1500) || 'Not provided'}"
+
+${config.style}
+
+Return ONLY the post content, ready to copy and paste. No explanations or metadata.`;
 
     } else {
       throw new Error("Invalid generation type");
