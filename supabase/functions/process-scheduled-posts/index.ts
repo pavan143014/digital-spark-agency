@@ -85,22 +85,29 @@ Make sure links are contextually placed and provide value to readers.`
         // Generate blog content using AI
         const prompt = `Write a comprehensive, SEO-optimized blog post about: "${scheduledPost.topic}"
 
-This is for PS Digital Marketing Agency based in India.
+This is for PS Digital Marketing Agency, the best digital marketing agency in Guntur, Andhra Pradesh, India.
+
+Primary SEO Keywords to include:
+- "best digital marketing agency in guntur" (use 3-5 times naturally)
+- "digital marketing services guntur"
+- "guntur", "andhra pradesh", "vijayawada"
 
 ${internalLinks}
 
 SEO Requirements:
-- Use the primary keyword in the first paragraph
-- Include H2 and H3 headings with keywords
-- Add a compelling meta description
-- Include actionable tips and examples
-- End with a strong call-to-action mentioning PS Digital's ${service.shortTitle} services
-- Make content valuable and shareable
+- Use the primary keyword "best digital marketing agency in guntur" in the first paragraph
+- Include H2 and H3 headings with location-based keywords
+- Add a compelling meta description mentioning Guntur
+- Include actionable tips and local examples relevant to Guntur businesses
+- Reference PS Digital as the leading agency in Guntur and Andhra Pradesh
+- End with a strong call-to-action mentioning PS Digital's ${service.shortTitle} services in Guntur
+- Make content valuable for business owners in Andhra Pradesh
 - Target length: 1500-2000 words
 
 ${scheduledPost.custom_instructions || ""}
 
-Focus on providing real value to readers looking for ${service.title} information.`;
+Focus on providing real value to readers in Guntur and Andhra Pradesh looking for ${service.title} information.
+Make sure to mention that PS Digital serves businesses across Guntur, Vijayawada, and the entire Andhra Pradesh region.`;
 
         // Call Lovable AI to generate content
         const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
@@ -162,7 +169,7 @@ Focus on providing real value to readers looking for ${service.title} informatio
           .substring(0, 80);
 
         // Generate tags
-        const tags = [service.shortTitle, "Digital Marketing", "India", ...service.subServices.slice(0, 2)];
+        const tags = [service.shortTitle, "Digital Marketing", "Guntur", "Andhra Pradesh", "Best Digital Marketing Agency in Guntur", ...service.subServices.slice(0, 2)];
 
         // Insert the blog post
         const { data: blogPost, error: insertError } = await supabase
