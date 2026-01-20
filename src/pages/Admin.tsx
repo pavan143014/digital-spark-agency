@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,8 +29,17 @@ import {
   EyeIcon,
   ArrowUpRight,
   Loader2,
-  Menu
+  Menu,
+  Keyboard,
+  Command
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,6 +94,79 @@ const Admin = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Keyboard shortcuts configuration
+  const shortcuts = [
+    { key: '1', section: 'overview', label: 'Overview' },
+    { key: '2', section: 'posts', label: 'Blog Posts' },
+    { key: '3', section: 'analytics', label: 'Analytics' },
+    { key: '4', section: 'marketing', label: 'Marketing' },
+    { key: '5', section: 'ai-studio', label: 'AI Studio' },
+    { key: '6', section: 'social', label: 'Social Media' },
+    { key: '7', section: 'visual', label: 'Visual Editor' },
+  ];
+
+  // Keyboard shortcut handler
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Don't trigger if user is typing in an input
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifierKey = isMac ? e.metaKey : e.ctrlKey;
+
+    // Show shortcuts help with ? or Cmd/Ctrl + /
+    if (e.key === '?' || (modifierKey && e.key === '/')) {
+      e.preventDefault();
+      setShowShortcuts(true);
+      return;
+    }
+
+    // Navigate sections with Cmd/Ctrl + number
+    if (modifierKey && !e.shiftKey && !e.altKey) {
+      const shortcut = shortcuts.find(s => s.key === e.key);
+      if (shortcut) {
+        e.preventDefault();
+        setActiveSection(shortcut.section);
+        toast({
+          title: `Navigated to ${shortcut.label}`,
+          description: `⌘${shortcut.key}`,
+          duration: 1500,
+        });
+      }
+    }
+
+    // Quick actions
+    if (modifierKey) {
+      switch (e.key) {
+        case 'n':
+          e.preventDefault();
+          navigate('/admin/posts/new');
+          break;
+        case 'k':
+          e.preventDefault();
+          setShowShortcuts(true);
+          break;
+      }
+    }
+
+    // Escape to close shortcuts modal
+    if (e.key === 'Escape' && showShortcuts) {
+      setShowShortcuts(false);
+    }
+  }, [navigate, toast, showShortcuts, shortcuts]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   useEffect(() => {
     if (!isLoading && (!user || !isAdmin)) {
@@ -874,14 +956,29 @@ const Admin = () => {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
           <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-            <div className="flex h-14 items-center gap-4 px-4 lg:px-6">
-              <SidebarTrigger className="lg:hidden">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-              <div className="flex items-center gap-2">
-                <LayoutDashboard className="h-5 w-5 text-primary" />
-                <h1 className="text-lg font-semibold">{getSectionTitle()}</h1>
+            <div className="flex h-14 items-center justify-between px-4 lg:px-6">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="lg:hidden">
+                  <Menu className="h-5 w-5" />
+                </SidebarTrigger>
+                <div className="flex items-center gap-2">
+                  <LayoutDashboard className="h-5 w-5 text-primary" />
+                  <h1 className="text-lg font-semibold">{getSectionTitle()}</h1>
+                </div>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowShortcuts(true)}
+                className="hidden md:flex items-center gap-2"
+              >
+                <Keyboard className="h-4 w-4" />
+                <span className="text-xs text-muted-foreground">
+                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                    <span className="text-xs">⌘</span>K
+                  </kbd>
+                </span>
+              </Button>
             </div>
           </header>
 
@@ -891,6 +988,60 @@ const Admin = () => {
           </main>
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Dialog */}
+      <Dialog open={showShortcuts} onOpenChange={setShowShortcuts}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Keyboard className="h-5 w-5" />
+              Keyboard Shortcuts
+            </DialogTitle>
+            <DialogDescription>
+              Navigate quickly using keyboard shortcuts
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium mb-2 text-muted-foreground">Navigation</h4>
+              <div className="space-y-2">
+                {shortcuts.map((shortcut) => (
+                  <div key={shortcut.key} className="flex items-center justify-between py-1.5">
+                    <span className="text-sm">{shortcut.label}</span>
+                    <kbd className="inline-flex h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs">
+                      <Command className="h-3 w-3" />
+                      {shortcut.key}
+                    </kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-2 text-muted-foreground">Quick Actions</h4>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-sm">New Post</span>
+                  <kbd className="inline-flex h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs">
+                    <Command className="h-3 w-3" />N
+                  </kbd>
+                </div>
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-sm">Show Shortcuts</span>
+                  <kbd className="inline-flex h-6 items-center gap-1 rounded border bg-muted px-2 font-mono text-xs">
+                    <Command className="h-3 w-3" />K
+                  </kbd>
+                </div>
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-sm">Close Modal</span>
+                  <kbd className="inline-flex h-6 items-center rounded border bg-muted px-2 font-mono text-xs">
+                    Esc
+                  </kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 };
