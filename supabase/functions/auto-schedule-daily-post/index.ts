@@ -267,7 +267,7 @@ CONTENT STRUCTURE:
         scheduled_at: scheduledTime.toISOString(),
         status: "pending",
         include_internal_links: true,
-        website_url: "https://psdigital.in",
+        website_url: "https://psdigitalmarketingagency.in",
         custom_instructions: customInstructions,
       })
       .select()
