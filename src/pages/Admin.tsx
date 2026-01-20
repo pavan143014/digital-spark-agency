@@ -54,6 +54,7 @@ import { format, parseISO, isAfter, subDays, startOfDay } from 'date-fns';
 import AIControlsPanel from '@/components/admin/AIControlsPanel';
 import MarketingDashboard from '@/components/admin/MarketingDashboard';
 import VisualEditor from '@/components/admin/VisualEditor';
+import ContentAnalytics from '@/components/admin/ContentAnalytics';
 
 interface BlogPost {
   id: string;
@@ -399,10 +400,14 @@ const Admin = () => {
 
         {/* Main Dashboard Tabs */}
         <Tabs defaultValue="overview" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="marketing" className="flex items-center gap-2">
               <Megaphone className="h-4 w-4" />
@@ -582,6 +587,11 @@ const Admin = () => {
                 });
               }}
             />
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics">
+            <ContentAnalytics />
           </TabsContent>
 
           {/* Visual Editor Tab */}
