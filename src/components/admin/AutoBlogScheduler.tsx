@@ -28,8 +28,11 @@ import {
   Trash2,
   AlertCircle,
   Play,
-  Pause
+  Settings,
+  Layers,
+  History
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
 interface ScheduledPost {
@@ -68,6 +71,13 @@ const AutoBlogScheduler = ({ onPostGenerated }: AutoBlogSchedulerProps) => {
   const [scheduleTopic, setScheduleTopic] = useState('');
   const [scheduleTitle, setScheduleTitle] = useState('');
   const [customInstructions, setCustomInstructions] = useState('');
+  
+  // Bulk scheduling state
+  const [bulkSelectedTopics, setBulkSelectedTopics] = useState<string[]>([]);
+  const [bulkStartDate, setBulkStartDate] = useState<Date | undefined>(undefined);
+  const [bulkInterval, setBulkInterval] = useState('1'); // days between posts
+  const [bulkStartTime, setBulkStartTime] = useState('09:00');
+  const [isBulkScheduling, setIsBulkScheduling] = useState(false);
   
   const { toast } = useToast();
 
@@ -438,6 +448,84 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
     }
   };
 
+  const handleBulkSchedule = async () => {
+    if (!selectedService || bulkSelectedTopics.length === 0 || !bulkStartDate) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please select service, topics, and start date',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsBulkScheduling(true);
+
+    try {
+      const [hours, minutes] = bulkStartTime.split(':').map(Number);
+      const intervalDays = parseInt(bulkInterval) || 1;
+      
+      const postsToInsert = bulkSelectedTopics.map((topic, index) => {
+        const scheduledAt = new Date(bulkStartDate);
+        scheduledAt.setDate(scheduledAt.getDate() + (index * intervalDays));
+        scheduledAt.setHours(hours, minutes, 0, 0);
+        
+        return {
+          title: topic,
+          topic: topic,
+          service_id: selectedService,
+          scheduled_at: scheduledAt.toISOString(),
+          include_internal_links: includeInternalLinks,
+          website_url: websiteUrl,
+          custom_instructions: customInstructions || null,
+          status: 'pending'
+        };
+      });
+
+      const { error } = await supabase.from('scheduled_blog_posts').insert(postsToInsert);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Bulk Schedule Created!',
+        description: `${bulkSelectedTopics.length} posts scheduled starting ${format(bulkStartDate, 'PPP')}`,
+      });
+
+      // Reset form
+      setBulkSelectedTopics([]);
+      setBulkStartDate(undefined);
+      
+      // Refresh list
+      fetchScheduledPosts();
+    } catch (error) {
+      console.error('Bulk scheduling error:', error);
+      toast({
+        title: 'Bulk Scheduling Failed',
+        description: 'Failed to schedule posts',
+        variant: 'destructive'
+      });
+    }
+
+    setIsBulkScheduling(false);
+  };
+
+  const toggleBulkTopic = (topic: string) => {
+    setBulkSelectedTopics(prev => 
+      prev.includes(topic) 
+        ? prev.filter(t => t !== topic)
+        : [...prev, topic]
+    );
+  };
+
+  const selectAllTopics = () => {
+    if (selectedService && topicTemplates[selectedService]) {
+      setBulkSelectedTopics(topicTemplates[selectedService]);
+    }
+  };
+
+  const clearAllTopics = () => {
+    setBulkSelectedTopics([]);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -480,14 +568,18 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
         <CollapsibleContent>
           <CardContent className="space-y-4">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="generate">
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Generate Now
+                  Generate
                 </TabsTrigger>
                 <TabsTrigger value="schedule">
                   <Clock className="h-4 w-4 mr-2" />
-                  Schedule Posts
+                  Schedule
+                </TabsTrigger>
+                <TabsTrigger value="bulk">
+                  <Layers className="h-4 w-4 mr-2" />
+                  Bulk
                 </TabsTrigger>
               </TabsList>
 
@@ -783,6 +875,241 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
                       ))}
                     </div>
                   )}
+                </div>
+              </TabsContent>
+
+              {/* Bulk Scheduling Tab */}
+              <TabsContent value="bulk" className="space-y-4 mt-4">
+                <div className="grid gap-4 p-4 rounded-lg border bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Layers className="h-4 w-4 text-primary" />
+                      Bulk Schedule Posts
+                    </h4>
+                    <Badge variant="outline">
+                      {bulkSelectedTopics.length} selected
+                    </Badge>
+                  </div>
+                  
+                  {/* Service Selection */}
+                  <div className="space-y-2">
+                    <Label>Service Category</Label>
+                    <Select value={selectedService} onValueChange={(val) => {
+                      setSelectedService(val);
+                      setBulkSelectedTopics([]);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a service" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {services.map(service => (
+                          <SelectItem key={service.id} value={service.id}>
+                            {service.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Topic Selection */}
+                  {selectedService && topicTemplates[selectedService] && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Select Topics</Label>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={selectAllTopics}>
+                            Select All
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={clearAllTopics}>
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-2 p-2 rounded-lg border bg-background">
+                        {topicTemplates[selectedService].map((topic, idx) => (
+                          <div key={idx} className="flex items-start gap-3 p-2 hover:bg-muted/50 rounded">
+                            <Checkbox
+                              id={`topic-${idx}`}
+                              checked={bulkSelectedTopics.includes(topic)}
+                              onCheckedChange={() => toggleBulkTopic(topic)}
+                            />
+                            <label
+                              htmlFor={`topic-${idx}`}
+                              className="text-sm cursor-pointer flex-1"
+                            >
+                              {topic}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Schedule Settings */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Start Date */}
+                    <div className="space-y-2">
+                      <Label>Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !bulkStartDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {bulkStartDate ? format(bulkStartDate, "PP") : "Pick date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={bulkStartDate}
+                            onSelect={setBulkStartDate}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Time */}
+                    <div className="space-y-2">
+                      <Label>Time</Label>
+                      <Select value={bulkStartTime} onValueChange={setBulkStartTime}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {timeOptions.map(time => (
+                            <SelectItem key={time} value={time}>
+                              {time}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Interval */}
+                    <div className="space-y-2">
+                      <Label>Days Between</Label>
+                      <Select value={bulkInterval} onValueChange={setBulkInterval}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Every day</SelectItem>
+                          <SelectItem value="2">Every 2 days</SelectItem>
+                          <SelectItem value="3">Every 3 days</SelectItem>
+                          <SelectItem value="7">Weekly</SelectItem>
+                          <SelectItem value="14">Bi-weekly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Preview */}
+                  {bulkSelectedTopics.length > 0 && bulkStartDate && (
+                    <div className="p-3 rounded-lg bg-background border">
+                      <p className="text-sm font-medium mb-2">Schedule Preview:</p>
+                      <div className="text-xs text-muted-foreground space-y-1 max-h-24 overflow-y-auto">
+                        {bulkSelectedTopics.slice(0, 5).map((topic, idx) => {
+                          const date = new Date(bulkStartDate);
+                          date.setDate(date.getDate() + (idx * parseInt(bulkInterval)));
+                          return (
+                            <div key={idx} className="flex justify-between">
+                              <span className="truncate flex-1">{topic.substring(0, 40)}...</span>
+                              <span className="ml-2">{format(date, 'MMM d')}</span>
+                            </div>
+                          );
+                        })}
+                        {bulkSelectedTopics.length > 5 && (
+                          <p className="text-muted-foreground">...and {bulkSelectedTopics.length - 5} more</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Internal Links Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-background">
+                    <div className="flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4 text-primary" />
+                      <Label className="font-medium">Include Internal Links</Label>
+                    </div>
+                    <Switch
+                      checked={includeInternalLinks}
+                      onCheckedChange={setIncludeInternalLinks}
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={handleBulkSchedule} 
+                    disabled={isBulkScheduling || bulkSelectedTopics.length === 0 || !bulkStartDate}
+                    className="w-full"
+                  >
+                    {isBulkScheduling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Scheduling...
+                      </>
+                    ) : (
+                      <>
+                        <Layers className="h-4 w-4 mr-2" />
+                        Schedule {bulkSelectedTopics.length} Posts
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Cron Job Info */}
+                <div className="p-4 rounded-lg border bg-card">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-primary" />
+                      Auto-Processing Status
+                    </h4>
+                    <Badge variant="outline" className="bg-primary/10 text-primary">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Active
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Schedule</p>
+                      <p className="font-medium">Every 6 hours</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Next Run</p>
+                      <p className="font-medium">00:00, 06:00, 12:00, 18:00</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Scheduled posts are automatically processed when their scheduled time arrives.
+                  </p>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg border bg-card text-center">
+                    <p className="text-2xl font-bold text-primary">
+                      {scheduledPosts.filter(p => p.status === 'pending').length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Pending</p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-card text-center">
+                    <p className="text-2xl font-bold text-primary">
+                      {scheduledPosts.filter(p => p.status === 'completed').length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Completed</p>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-card text-center">
+                    <p className="text-2xl font-bold text-destructive">
+                      {scheduledPosts.filter(p => p.status === 'failed').length}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Failed</p>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
