@@ -175,6 +175,70 @@ Make sure to mention that PS Digital serves businesses across Guntur, Vijayawada
         // Generate tags
         const tags = [service.shortTitle, "Digital Marketing", "Guntur", "Andhra Pradesh", "Best Digital Marketing Agency in Guntur", ...service.subServices.slice(0, 2)];
 
+        // Generate cover image
+        let coverImageUrl: string | null = null;
+        try {
+          console.log("Generating cover image for:", scheduledPost.topic);
+          
+          const imagePrompt = `Professional digital marketing blog cover image about ${service.title} for a business in Guntur, Andhra Pradesh, India. 
+Modern, clean design with business and technology elements. 
+Include subtle visual elements related to ${service.shortTitle}: ${service.subServices.slice(0, 2).join(", ")}.
+Professional blue and orange color scheme. 
+Space on left side for text overlay.
+16:9 landscape banner format suitable for blog headers.
+Ultra high resolution, professional marketing aesthetic.`;
+
+          const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash-image-preview",
+              messages: [{ role: "user", content: imagePrompt }],
+              modalities: ["image", "text"],
+            }),
+          });
+
+          if (imageResponse.ok) {
+            const imageData = await imageResponse.json();
+            const imageBase64 = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+            if (imageBase64) {
+              // Extract base64 data
+              const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+              const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+              // Generate unique filename
+              const fileName = `ai-generated/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+
+              // Upload to storage
+              const { error: uploadError } = await supabase.storage
+                .from("blog-images")
+                .upload(fileName, binaryData, {
+                  contentType: "image/png",
+                  upsert: false,
+                });
+
+              if (!uploadError) {
+                const { data: urlData } = supabase.storage
+                  .from("blog-images")
+                  .getPublicUrl(fileName);
+                coverImageUrl = urlData.publicUrl;
+                console.log("Cover image generated and uploaded:", coverImageUrl);
+              } else {
+                console.error("Failed to upload cover image:", uploadError.message);
+              }
+            }
+          } else {
+            console.error("Failed to generate cover image:", imageResponse.status);
+          }
+        } catch (imgError) {
+          console.error("Error generating cover image:", imgError);
+          // Continue without cover image - don't fail the whole post
+        }
+
         // Insert the blog post
         const { data: blogPost, error: insertError } = await supabase
           .from("blog_posts")
@@ -187,6 +251,7 @@ Make sure to mention that PS Digital serves businesses across Guntur, Vijayawada
             category: service.shortTitle,
             author: "PS Digital Team",
             published: false, // Save as draft for review
+            cover_image: coverImageUrl,
           })
           .select()
           .single();
