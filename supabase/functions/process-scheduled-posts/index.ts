@@ -239,7 +239,7 @@ Ultra high resolution, professional marketing aesthetic.`;
           // Continue without cover image - don't fail the whole post
         }
 
-        // Insert the blog post
+        // Insert the blog post (auto-publish)
         const { data: blogPost, error: insertError } = await supabase
           .from("blog_posts")
           .insert({
@@ -250,7 +250,8 @@ Ultra high resolution, professional marketing aesthetic.`;
             tags,
             category: service.shortTitle,
             author: "PS Digital Team",
-            published: false, // Save as draft for review
+            published: true,
+            published_at: new Date().toISOString(),
             cover_image: coverImageUrl,
           })
           .select()
