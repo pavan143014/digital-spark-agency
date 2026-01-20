@@ -8,14 +8,18 @@ const corsHeaders = {
 
 // Service data for generating blog posts
 const serviceData: Record<string, { title: string; shortTitle: string; subServices: string[] }> = {
-  'seo': { title: 'SEO Services', shortTitle: 'SEO', subServices: ['Technical SEO', 'Local SEO', 'Link Building'] },
-  'social-media': { title: 'Social Media Marketing', shortTitle: 'Social Media', subServices: ['Instagram Marketing', 'LinkedIn Marketing', 'Content Strategy'] },
-  'google-ads': { title: 'Google Ads Management', shortTitle: 'Google Ads', subServices: ['Search Ads', 'Display Ads', 'Remarketing'] },
-  'web-development': { title: 'Web Development', shortTitle: 'Web Dev', subServices: ['E-commerce', 'Responsive Design', 'CMS Development'] },
-  'content-marketing': { title: 'Content Marketing', shortTitle: 'Content', subServices: ['Blog Writing', 'Copywriting', 'Content Strategy'] },
-  'email-marketing': { title: 'Email Marketing', shortTitle: 'Email', subServices: ['Automation', 'Newsletters', 'Drip Campaigns'] },
-  'branding': { title: 'Branding & Design', shortTitle: 'Branding', subServices: ['Logo Design', 'Brand Identity', 'Visual Design'] },
-  'video-marketing': { title: 'Video Marketing', shortTitle: 'Video', subServices: ['YouTube Marketing', 'Video Production', 'Live Streaming'] },
+  'seo': { title: 'SEO Services', shortTitle: 'SEO', subServices: ['Technical SEO', 'Local SEO', 'Link Building', 'On-Page SEO', 'E-commerce SEO'] },
+  'social-media': { title: 'Social Media Marketing', shortTitle: 'Social Media', subServices: ['Instagram Marketing', 'LinkedIn Marketing', 'Facebook Marketing', 'Content Strategy'] },
+  'google-ads': { title: 'Google Ads Management', shortTitle: 'Google Ads', subServices: ['Search Ads', 'Display Ads', 'Remarketing', 'Shopping Ads'] },
+  'web-development': { title: 'Website Development', shortTitle: 'Web Dev', subServices: ['E-commerce', 'Responsive Design', 'CMS Development', 'Landing Pages'] },
+  'content-marketing': { title: 'Content Marketing', shortTitle: 'Content', subServices: ['Blog Writing', 'Copywriting', 'Content Strategy', 'Article Writing'] },
+  'email-marketing': { title: 'Email Marketing', shortTitle: 'Email', subServices: ['Automation', 'Newsletters', 'Drip Campaigns', 'List Building'] },
+  'branding': { title: 'Branding & Identity', shortTitle: 'Branding', subServices: ['Logo Design', 'Brand Identity', 'Visual Design', 'Brand Strategy'] },
+  'video-marketing': { title: 'Video Marketing', shortTitle: 'Video', subServices: ['YouTube Marketing', 'Video Production', 'Live Streaming', 'Video Ads'] },
+  'influencer-marketing': { title: 'Influencer Marketing', shortTitle: 'Influencer', subServices: ['Instagram Influencers', 'YouTube Collaborations', 'Micro-Influencers', 'Campaign Management'] },
+  'orm': { title: 'Online Reputation Management', shortTitle: 'ORM', subServices: ['Review Management', 'Crisis Management', 'Brand Monitoring', 'Reputation Repair'] },
+  'app-marketing': { title: 'App Marketing', shortTitle: 'App Marketing', subServices: ['App Store Optimization', 'User Acquisition', 'App Install Campaigns', 'Retention Marketing'] },
+  'marketing-automation': { title: 'Marketing Automation', shortTitle: 'Automation', subServices: ['CRM Integration', 'Lead Nurturing', 'Workflow Automation', 'Email Automation'] },
 };
 
 serve(async (req) => {
@@ -110,14 +114,14 @@ Focus on providing real value to readers in Guntur and Andhra Pradesh looking fo
 Make sure to mention that PS Digital serves businesses across Guntur, Vijayawada, and the entire Andhra Pradesh region.`;
 
         // Call Lovable AI to generate content
-        const aiResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${lovableApiKey}`,
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-3-flash-preview",
             messages: [
               {
                 role: "system",
@@ -140,14 +144,14 @@ Make sure to mention that PS Digital serves businesses across Guntur, Vijayawada
         }
 
         // Generate excerpt
-        const excerptResponse = await fetch("https://api.lovable.dev/v1/chat/completions", {
+        const excerptResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${lovableApiKey}`,
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: "google/gemini-3-flash-preview",
             messages: [
               {
                 role: "system",
