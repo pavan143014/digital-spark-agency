@@ -59,6 +59,11 @@ serve(async (req) => {
     }
 
     if (action === 'generate_image') {
+      // Validate prompt first
+      if (!prompt || prompt.trim().length === 0) {
+        throw new Error("Image prompt is required. Please provide a description.");
+      }
+
       // Generate image using Lovable AI
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -75,7 +80,7 @@ serve(async (req) => {
         social: "Social media optimized, eye-catching, scroll-stopping visual.",
       };
 
-      const enhancedPrompt = `${prompt}. 
+      const enhancedPrompt = `Create an image: ${prompt.trim()}. 
 Style: ${stylePrompts[style || 'social']}
 Format: Square 1:1 aspect ratio, perfect for social media posts.
 Ultra high resolution, engaging visual for social media.`;

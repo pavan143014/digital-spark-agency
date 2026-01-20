@@ -272,14 +272,18 @@ const SocialMediaGenerator = () => {
   };
 
   const generateImage = async () => {
-    if (!imagePrompt.trim()) {
+    // Use local variable to avoid state timing issues
+    let promptToUse = imagePrompt.trim();
+    
+    if (!promptToUse) {
       const source = getSourceContent();
       if (source.title) {
-        setImagePrompt(`${source.title} - social media visual`);
+        promptToUse = `${source.title} - engaging social media visual for digital marketing`;
+        setImagePrompt(promptToUse);
       } else {
         toast({
           title: 'Missing prompt',
-          description: 'Please enter an image prompt',
+          description: 'Please enter an image prompt or select content first',
           variant: 'destructive',
         });
         return;
@@ -291,7 +295,7 @@ const SocialMediaGenerator = () => {
       const { data, error } = await supabase.functions.invoke('publish-social', {
         body: { 
           action: 'generate_image', 
-          prompt: imagePrompt,
+          prompt: promptToUse, // Use local value, not state
           style: 'social',
         },
       });
