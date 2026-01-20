@@ -78,6 +78,7 @@ const AutoBlogScheduler = ({ onPostGenerated }: AutoBlogSchedulerProps) => {
   const [bulkInterval, setBulkInterval] = useState('1'); // days between posts
   const [bulkStartTime, setBulkStartTime] = useState('09:00');
   const [isBulkScheduling, setIsBulkScheduling] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const { toast } = useToast();
 
@@ -427,14 +428,20 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
   };
 
   const handleProcessNow = async () => {
+    setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('process-scheduled-posts');
       
       if (error) throw error;
 
+      const processed = data.processed || 0;
+      const failed = data.failed || 0;
+      
       toast({
         title: 'Processing Complete',
-        description: data.message || 'Scheduled posts processed',
+        description: processed > 0 
+          ? `${processed} post(s) generated${failed > 0 ? `, ${failed} failed` : ' and published!'}`
+          : 'No pending posts to process',
       });
 
       fetchScheduledPosts();
@@ -445,6 +452,8 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
         description: 'Failed to process scheduled posts',
         variant: 'destructive'
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -821,13 +830,28 @@ Focus on providing real value to readers looking for ${serviceData.title} inform
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Scheduled Posts</h4>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={fetchScheduledPosts}>
-                        <RefreshCw className="h-4 w-4 mr-1" />
+                      <Button variant="outline" size="sm" onClick={fetchScheduledPosts} disabled={isProcessing}>
+                        <RefreshCw className={cn("h-4 w-4 mr-1", isLoadingScheduled && "animate-spin")} />
                         Refresh
                       </Button>
-                      <Button variant="outline" size="sm" onClick={handleProcessNow}>
-                        <Play className="h-4 w-4 mr-1" />
-                        Process Now
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={handleProcessNow}
+                        disabled={isProcessing || scheduledPosts.filter(p => p.status === 'pending').length === 0}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4 mr-1" />
+                            Process Now
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
