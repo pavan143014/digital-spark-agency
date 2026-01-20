@@ -29,7 +29,9 @@ import {
   EyeIcon,
   ArrowUpRight,
   Loader2,
-  Sparkles
+  Sparkles,
+  Megaphone,
+  Palette
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -49,8 +51,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format, parseISO, isAfter, subDays, startOfDay } from 'date-fns';
-import AutoBlogScheduler from '@/components/admin/AutoBlogScheduler';
 import AIControlsPanel from '@/components/admin/AIControlsPanel';
+import MarketingDashboard from '@/components/admin/MarketingDashboard';
+import VisualEditor from '@/components/admin/VisualEditor';
 
 interface BlogPost {
   id: string;
@@ -391,170 +394,201 @@ const Admin = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-2">Welcome back! 👋</h2>
-          <p className="text-muted-foreground">Here's an overview of your blog content and analytics</p>
+          <p className="text-muted-foreground">Manage your marketing content, create blogs, and customize your website</p>
         </div>
 
-        {/* Analytics Section */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-primary" />
-            Analytics Overview
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Today's Views</CardTitle>
-                <div className="p-2 rounded-full bg-green-500/10">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                ) : (
-                  <>
-                    <div className="text-3xl font-bold">{viewStats?.today || 0}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Page views today</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">This Week</CardTitle>
-                <div className="p-2 rounded-full bg-blue-500/10">
-                  <BarChart3 className="h-4 w-4 text-blue-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                ) : (
-                  <>
-                    <div className="text-3xl font-bold">{viewStats?.week || 0}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Views this week</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-                <div className="p-2 rounded-full bg-purple-500/10">
-                  <EyeIcon className="h-4 w-4 text-purple-500" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingStats ? (
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                ) : (
-                  <>
-                    <div className="text-3xl font-bold">{viewStats?.total || 0}</div>
-                    <p className="text-xs text-muted-foreground mt-1">All time views</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
-                <div className="p-2 rounded-full bg-primary/10">
-                  <FileText className="h-4 w-4 text-primary" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.total}</div>
-                <p className="text-xs text-muted-foreground mt-1">{stats.published} published</p>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Main Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-8">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="marketing" className="flex items-center gap-2">
+              <Megaphone className="h-4 w-4" />
+              <span className="hidden sm:inline">Marketing</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-studio" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Studio</span>
+            </TabsTrigger>
+            <TabsTrigger value="visual" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              <span className="hidden sm:inline">Visual</span>
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Top Posts & Weekly Chart */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Weekly Views Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Views This Week</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingStats ? (
-                  <div className="h-32 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <div className="flex items-end gap-2 h-32">
-                    {viewStats?.recentViews.map((day, i) => {
-                      const maxCount = Math.max(...(viewStats?.recentViews.map(d => d.count) || [1]), 1);
-                      const height = day.count > 0 ? Math.max((day.count / maxCount) * 100, 10) : 4;
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <div 
-                            className="w-full bg-primary/80 rounded-t transition-all hover:bg-primary"
-                            style={{ height: `${height}%` }}
-                            title={`${day.count} views`}
-                          />
-                          <span className="text-xs text-muted-foreground">{day.date}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-8">
+            {/* Analytics Section */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Analytics Overview
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Today's Views</CardTitle>
+                    <div className="p-2 rounded-full bg-[hsl(var(--ps-green)/0.1)]">
+                      <TrendingUp className="h-4 w-4 text-[hsl(var(--ps-green))]" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold">{viewStats?.today || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Page views today</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">This Week</CardTitle>
+                    <div className="p-2 rounded-full bg-[hsl(var(--ps-blue)/0.1)]">
+                      <BarChart3 className="h-4 w-4 text-[hsl(var(--ps-blue))]" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold">{viewStats?.week || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Views this week</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+                    <div className="p-2 rounded-full bg-[hsl(var(--ps-purple)/0.1)]">
+                      <EyeIcon className="h-4 w-4 text-[hsl(var(--ps-purple))]" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStats ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <div className="text-3xl font-bold">{viewStats?.total || 0}</div>
+                        <p className="text-xs text-muted-foreground mt-1">All time views</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <FileText className="h-4 w-4 text-primary" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{stats.total}</div>
+                    <p className="text-xs text-muted-foreground mt-1">{stats.published} published</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* Top Posts */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Popular Posts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingStats ? (
-                  <div className="h-32 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : viewStats?.topPosts.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">No views yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {viewStats?.topPosts.slice(0, 4).map((post, i) => (
-                      <div key={post.id} className="flex items-center gap-3">
-                        <span className="text-xs font-medium text-muted-foreground w-4">{i + 1}</span>
-                        <div className="flex-1 min-w-0">
-                          <Link 
-                            to={`/blog/${post.slug}`} 
-                            target="_blank"
-                            className="text-sm font-medium truncate hover:text-primary transition-colors flex items-center gap-1"
-                          >
-                            {post.title}
-                            <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
-                          </Link>
-                        </div>
-                        <Badge variant="secondary" className="flex-shrink-0">
-                          {post.view_count} views
-                        </Badge>
+              {/* Top Posts & Weekly Chart */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Weekly Views Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Views This Week</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStats ? (
+                      <div className="h-32 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                    ) : (
+                      <div className="flex items-end gap-2 h-32">
+                        {viewStats?.recentViews.map((day, i) => {
+                          const maxCount = Math.max(...(viewStats?.recentViews.map(d => d.count) || [1]), 1);
+                          const height = day.count > 0 ? Math.max((day.count / maxCount) * 100, 10) : 4;
+                          return (
+                            <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                              <div 
+                                className="w-full bg-primary/80 rounded-t transition-all hover:bg-primary"
+                                style={{ height: `${height}%` }}
+                                title={`${day.count} views`}
+                              />
+                              <span className="text-xs text-muted-foreground">{day.date}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-        {/* AI Content Studio Section */}
-        <div className="mb-8">
-          <AIControlsPanel 
-            onPostGenerated={(post) => {
-              navigate('/admin/post/new', { 
-                state: { 
-                  prefill: post 
-                } 
-              });
-            }}
-          />
-        </div>
+                {/* Top Posts */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Popular Posts</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loadingStats ? (
+                      <div className="h-32 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : viewStats?.topPosts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">No views yet</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {viewStats?.topPosts.slice(0, 4).map((post, i) => (
+                          <div key={post.id} className="flex items-center gap-3">
+                            <span className="text-xs font-medium text-muted-foreground w-4">{i + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <Link 
+                                to={`/blog/${post.slug}`} 
+                                target="_blank"
+                                className="text-sm font-medium truncate hover:text-primary transition-colors flex items-center gap-1"
+                              >
+                                {post.title}
+                                <ArrowUpRight className="h-3 w-3 flex-shrink-0" />
+                              </Link>
+                            </div>
+                            <Badge variant="secondary" className="flex-shrink-0">
+                              {post.view_count} views
+                            </Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
 
-        {/* Stats Cards */}
+          {/* Marketing Tab */}
+          <TabsContent value="marketing">
+            <MarketingDashboard />
+          </TabsContent>
+
+          {/* AI Studio Tab */}
+          <TabsContent value="ai-studio">
+            <AIControlsPanel 
+              onPostGenerated={(post) => {
+                navigate('/admin/posts/new', { 
+                  state: { prefill: post } 
+                });
+              }}
+            />
+          </TabsContent>
+
+          {/* Visual Editor Tab */}
+          <TabsContent value="visual">
+            <VisualEditor />
+          </TabsContent>
+        </Tabs>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
