@@ -31,8 +31,17 @@ import {
   Loader2,
   Menu,
   Keyboard,
-  Command
+  Command,
+  Bell,
+  Sparkles,
+  Send
 } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -96,6 +105,77 @@ const Admin = () => {
   const { toast } = useToast();
 
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // Generate notifications from recent activity
+  const notifications = (() => {
+    const items: { id: string; type: 'published' | 'draft' | 'scheduled' | 'views'; title: string; description: string; time: string; icon: React.ReactNode }[] = [];
+    
+    // Recent published posts (last 7 days)
+    const recentPublished = posts
+      .filter(p => p.published && p.published_at && new Date(p.published_at) > subDays(new Date(), 7))
+      .sort((a, b) => new Date(b.published_at!).getTime() - new Date(a.published_at!).getTime())
+      .slice(0, 3);
+    
+    recentPublished.forEach(post => {
+      items.push({
+        id: `pub-${post.id}`,
+        type: 'published',
+        title: 'Post Published',
+        description: post.title,
+        time: format(parseISO(post.published_at!), 'MMM d, h:mm a'),
+        icon: <Send className="h-4 w-4 text-primary" />
+      });
+    });
+
+    // Recent drafts (last 3 days)
+    const recentDrafts = posts
+      .filter(p => !p.published)
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .slice(0, 2);
+    
+    recentDrafts.forEach(post => {
+      items.push({
+        id: `draft-${post.id}`,
+        type: 'draft',
+        title: 'Draft Saved',
+        description: post.title,
+        time: format(parseISO(post.updated_at), 'MMM d, h:mm a'),
+        icon: <FileText className="h-4 w-4 text-muted-foreground" />
+      });
+    });
+
+    // Scheduled posts
+    const scheduledPosts = posts
+      .filter(p => p.published && p.published_at && isAfter(parseISO(p.published_at), now))
+      .sort((a, b) => new Date(a.published_at!).getTime() - new Date(b.published_at!).getTime())
+      .slice(0, 2);
+    
+    scheduledPosts.forEach(post => {
+      items.push({
+        id: `sched-${post.id}`,
+        type: 'scheduled',
+        title: 'Scheduled Post',
+        description: post.title,
+        time: format(parseISO(post.published_at!), 'MMM d, h:mm a'),
+        icon: <CalendarClock className="h-4 w-4 text-secondary-foreground" />
+      });
+    });
+
+    // View milestone notifications
+    if (viewStats && viewStats.today > 0) {
+      items.unshift({
+        id: 'views-today',
+        type: 'views',
+        title: 'Page Views Today',
+        description: `Your blog received ${viewStats.today} views today`,
+        time: 'Today',
+        icon: <Sparkles className="h-4 w-4 text-accent-foreground" />
+      });
+    }
+
+    return items.slice(0, 8);
+  })();
 
   // Keyboard shortcuts configuration
   const shortcuts = [
@@ -966,19 +1046,81 @@ const Admin = () => {
                   <h1 className="text-lg font-semibold">{getSectionTitle()}</h1>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowShortcuts(true)}
-                className="hidden md:flex items-center gap-2"
-              >
-                <Keyboard className="h-4 w-4" />
-                <span className="text-xs text-muted-foreground">
-                  <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                    <span className="text-xs">⌘</span>K
-                  </kbd>
-                </span>
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Notifications Bell */}
+                <Popover open={showNotifications} onOpenChange={setShowNotifications}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      <Bell className="h-5 w-5" />
+                      {notifications.length > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
+                          {notifications.length}
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="end">
+                    <div className="flex items-center justify-between px-4 py-3 border-b">
+                      <h4 className="font-semibold text-sm">Notifications</h4>
+                      <Badge variant="secondary" className="text-xs">
+                        {notifications.length} new
+                      </Badge>
+                    </div>
+                    <ScrollArea className="h-[320px]">
+                      {notifications.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                          <Bell className="h-8 w-8 mb-2 opacity-50" />
+                          <p className="text-sm">No notifications</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {notifications.map((notification) => (
+                            <div 
+                              key={notification.id}
+                              className="flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                              onClick={() => {
+                                if (notification.type !== 'views') {
+                                  const postId = notification.id.split('-').slice(1).join('-');
+                                  navigate(`/admin/posts/${postId}`);
+                                  setShowNotifications(false);
+                                }
+                              }}
+                            >
+                              <div className="mt-0.5 p-1.5 rounded-full bg-muted">
+                                {notification.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{notification.title}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {notification.description}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {notification.time}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Keyboard Shortcuts Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowShortcuts(true)}
+                  className="hidden md:flex items-center gap-2"
+                >
+                  <Keyboard className="h-4 w-4" />
+                  <span className="text-xs text-muted-foreground">
+                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                      <span className="text-xs">⌘</span>K
+                    </kbd>
+                  </span>
+                </Button>
+              </div>
             </div>
           </header>
 
